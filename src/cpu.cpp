@@ -380,12 +380,26 @@ void CPU::oPLP(uint16_t) {
 	flags = pop();
 }
 
-void CPU::oROL(uint16_t) {
-	// TODO
+void CPU::oROL(uint16_t src) {
+	const auto input = read(src);
+
+	const bool oldCarry = flags[Carry];
+	const auto result = (input << 1) | oldCarry;
+
+	flags[Carry] = (input & 0b1000'0000) != 0;
+	setZeroNegative(result);
+	write(src, result);
 }
 
-void CPU::oROR(uint16_t) {
-	// TODO
+void CPU::oROR(uint16_t src) {
+	const auto input = read(src);
+
+	const bool oldCarry = flags[Carry];
+	const auto result = (input >> 1) | (oldCarry << 7);
+
+	flags[Carry] = input & 1;
+	setZeroNegative(result);
+	write(src, result);
 }
 
 void CPU::oRTI(uint16_t) {
