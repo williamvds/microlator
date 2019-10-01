@@ -8,6 +8,7 @@ project(libmicrolator
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(microlator
+	src/cpu.cpp
 )
 
 target_include_directories(microlator
