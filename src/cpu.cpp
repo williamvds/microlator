@@ -194,7 +194,7 @@ void CPU::oAND(uint16_t src) {
 
 void CPU::oASL(uint16_t src) {
 	const auto input = read(src);
-	flags[Carry] = input & 0b1000'0000;
+	flags[Carry] = getBit(7, input);
 
 	const auto result = input << 1;
 	setZeroNegative(result);
@@ -360,7 +360,7 @@ void CPU::oLSR(uint16_t src) {
 	const auto input = read(src);
 	const auto result = input >> 1;
 	setZeroNegative(result);
-	flags[Carry] = input & 1;
+	flags[Carry] = getBit(0, input);
 	write(src, result);
 }
 
@@ -392,22 +392,18 @@ void CPU::oPLP(uint16_t) {
 
 void CPU::oROL(uint16_t src) {
 	const auto input = read(src);
+	const auto result = setBit(0, input << 1, flags[Carry]);
 
-	const bool oldCarry = flags[Carry];
-	const auto result = (input << 1) | oldCarry;
-
-	flags[Carry] = (input & 0b1000'0000) != 0;
+	flags[Carry] = getBit(7, input);
 	setZeroNegative(result);
 	write(src, result);
 }
 
 void CPU::oROR(uint16_t src) {
 	const auto input = read(src);
+	const auto result = setBit(7, input >> 1, flags[Carry]);
 
-	const bool oldCarry = flags[Carry];
-	const auto result = (input >> 1) | (oldCarry << 7);
-
-	flags[Carry] = input & 1;
+	flags[Carry] = getBit(0, input);
 	setZeroNegative(result);
 	write(src, result);
 }
