@@ -182,23 +182,23 @@ void CPU::addWithCarry(uint8_t input) {
 	accumulator = wrapToByte(result);
 }
 
-void CPU::oADC(uint16_t src) {
-	addWithCarry(read(src));
+void CPU::oADC(uint16_t address) {
+	addWithCarry(read(address));
 }
 
-void CPU::oAND(uint16_t src) {
-	const auto input = read(src);
+void CPU::oAND(uint16_t address) {
+	const auto input = read(address);
 	accumulator &= input;
 	setZeroNegative(accumulator);
 }
 
-void CPU::oASL(uint16_t src) {
-	const auto input = read(src);
+void CPU::oASL(uint16_t address) {
+	const auto input = read(address);
 	flags[Carry] = getBit(7, input);
 
 	const auto result = input << 1;
 	setZeroNegative(result);
-	write(src, result);
+	write(address, result);
 }
 
 void CPU::oBCC(uint16_t target) {
@@ -216,8 +216,8 @@ void CPU::oBEQ(uint16_t target) {
 		branch(target);
 }
 
-void CPU::oBIT(uint16_t src) {
-	const auto input = read(src);
+void CPU::oBIT(uint16_t address) {
+	const auto input = read(address);
 	setZeroNegative(input);
 }
 
@@ -243,14 +243,14 @@ void CPU::oBRK(uint16_t) {
 	push(static_cast<uint8_t>(flags.to_ulong()));
 }
 
-void CPU::oBVC(uint16_t src) {
+void CPU::oBVC(uint16_t address) {
 	if (!flags[Overflow])
-		branch(src);
+		branch(address);
 }
 
-void CPU::oBVS(uint16_t src) {
+void CPU::oBVS(uint16_t address) {
 	if (flags[Overflow])
-		branch(src);
+		branch(address);
 }
 
 void CPU::oCLC(uint16_t) {
@@ -269,26 +269,26 @@ void CPU::oCLV(uint16_t) {
 	flags[Overflow] = 0;
 }
 
-void CPU::oCMP(uint16_t src) {
-	const auto input = read(src);
+void CPU::oCMP(uint16_t address) {
+	const auto input = read(address);
 	compare(accumulator, input);
 }
 
-void CPU::oCPX(uint16_t src) {
-	const auto input = read(src);
+void CPU::oCPX(uint16_t address) {
+	const auto input = read(address);
 	compare(indexX, input);
 }
 
-void CPU::oCPY(uint16_t src) {
-	const auto input = read(src);
+void CPU::oCPY(uint16_t address) {
+	const auto input = read(address);
 	compare(indexY, input);
 }
 
-void CPU::oDEC(uint16_t src) {
-	const auto input = read(src);
+void CPU::oDEC(uint16_t address) {
+	const auto input = read(address);
 	const auto result = input - 1;
 	setZeroNegative(result);
-	write(src, result);
+	write(address, result);
 }
 
 void CPU::oDEX(uint16_t) {
@@ -303,18 +303,18 @@ void CPU::oDEY(uint16_t) {
 	indexY = result;
 }
 
-void CPU::oEOR(uint16_t src) {
-	const auto input = read(src);
+void CPU::oEOR(uint16_t address) {
+	const auto input = read(address);
 	const auto result = accumulator ^ input;
 	setZeroNegative(result);
-	write(src, result);
+	write(address, result);
 }
 
-void CPU::oINC(uint16_t src) {
-	const auto input = read(src);
+void CPU::oINC(uint16_t address) {
+	const auto input = read(address);
 	const auto result = input + 1;
 	setZeroNegative(result);
-	write(src, result);
+	write(address, result);
 }
 
 void CPU::oINX(uint16_t) {
@@ -329,46 +329,46 @@ void CPU::oINY(uint16_t) {
 	indexY = result;
 }
 
-void CPU::oJMP(uint16_t src) {
-	pc = src;
+void CPU::oJMP(uint16_t address) {
+	pc = address;
 }
 
-void CPU::oJSR(uint16_t src) {
+void CPU::oJSR(uint16_t address) {
 	push2(pc);
-	pc = src;
+	pc = address;
 }
 
-void CPU::oLDA(uint16_t src) {
-	const auto input = read(src);
+void CPU::oLDA(uint16_t address) {
+	const auto input = read(address);
 	accumulator = input;
 	setZeroNegative(input);
 }
 
-void CPU::oLDX(uint16_t src) {
-	const auto input = read(src);
+void CPU::oLDX(uint16_t address) {
+	const auto input = read(address);
 	indexX = input;
 	setZeroNegative(input);
 }
 
-void CPU::oLDY(uint16_t src) {
-	const auto input = read(src);
+void CPU::oLDY(uint16_t address) {
+	const auto input = read(address);
 	indexY = input;
 	setZeroNegative(input);
 }
 
-void CPU::oLSR(uint16_t src) {
-	const auto input = read(src);
+void CPU::oLSR(uint16_t address) {
+	const auto input = read(address);
 	const auto result = input >> 1;
 	setZeroNegative(result);
 	flags[Carry] = getBit(0, input);
-	write(src, result);
+	write(address, result);
 }
 
 void CPU::oNOP(uint16_t) {
 }
 
-void CPU::oORA(uint16_t src) {
-	const auto input = read(src);
+void CPU::oORA(uint16_t address) {
+	const auto input = read(address);
 	const auto result = accumulator | input;
 	setZeroNegative(result);
 	accumulator = result;
@@ -390,22 +390,22 @@ void CPU::oPLP(uint16_t) {
 	flags = pop();
 }
 
-void CPU::oROL(uint16_t src) {
-	const auto input = read(src);
+void CPU::oROL(uint16_t address) {
+	const auto input = read(address);
 	const auto result = setBit(0, input << 1, flags[Carry]);
 
 	flags[Carry] = getBit(7, input);
 	setZeroNegative(result);
-	write(src, result);
+	write(address, result);
 }
 
-void CPU::oROR(uint16_t src) {
-	const auto input = read(src);
+void CPU::oROR(uint16_t address) {
+	const auto input = read(address);
 	const auto result = setBit(7, input >> 1, flags[Carry]);
 
 	flags[Carry] = getBit(0, input);
 	setZeroNegative(result);
-	write(src, result);
+	write(address, result);
 }
 
 void CPU::oRTI(uint16_t) {
@@ -417,8 +417,8 @@ void CPU::oRTS(uint16_t) {
 	pc = pop2();
 }
 
-void CPU::oSBC(uint16_t src) {
-	addWithCarry(~read(src));
+void CPU::oSBC(uint16_t address) {
+	addWithCarry(~read(address));
 }
 
 void CPU::oSEC(uint16_t) {
@@ -433,16 +433,16 @@ void CPU::oSEI(uint16_t) {
 	flags[InterruptOff] = 1;
 }
 
-void CPU::oSTA(uint16_t src) {
-	write(src, accumulator);
+void CPU::oSTA(uint16_t address) {
+	write(address, accumulator);
 }
 
-void CPU::oSTX(uint16_t src) {
-	write(src, indexX);
+void CPU::oSTX(uint16_t address) {
+	write(address, indexX);
 }
 
-void CPU::oSTY(uint16_t src) {
-	write(src, indexY);
+void CPU::oSTY(uint16_t address) {
+	write(address, indexY);
 }
 
 void CPU::oTAX(uint16_t) {
