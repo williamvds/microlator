@@ -1,10 +1,20 @@
+#include <functional>
+
 #include "cpu.hpp"
 
 constexpr auto stackTop   = 0x100;
 
+constexpr uint8_t setBit(uint8_t index, uint8_t value, bool set) {
+	return value | (set << index);
+}
+
+constexpr bool getBit(uint8_t index, uint8_t value) {
+	return (value >> index) & 1;
+}
+
 constexpr bool isNegative(uint8_t value) {
 	// Two's complement: top bit means negative
-	return value & 0b1000'0000;
+	return getBit(7, value);
 }
 
 constexpr uint8_t wrapToByte(size_t value) {
