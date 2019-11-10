@@ -37,8 +37,37 @@ enum class AddressMode {
 	ZeropageY,   ZpgY = ZeropageY,
 };
 
+class ValueStore {
+public:
+	enum class Type {
+		Accumulator,
+		Memory,
+	};
+
+	constexpr ValueStore(CPU& cpu, uint16_t address, Type type = Type::Memory)
+	: address{address},
+	  type{type},
+	  cpu{cpu}
+	{
+	};
+
+	constexpr ValueStore(CPU& cpu)
+	: ValueStore{cpu, 0}
+	{
+	};
+
+	constexpr auto read() -> uint8_t;
+	constexpr void write(uint8_t);
+
+	const uint16_t address;
+
+private:
+	const Type type;
+	CPU& cpu;
+};
+
 struct Instruction {
-	using Function = void(CPU::*)(uint16_t);
+	using Function = void(CPU::*)(ValueStore);
 	Function    function    = nullptr;
 	AddressMode addressMode = AddressMode::Implicit;
 };
@@ -63,7 +92,7 @@ private:
 	bool indirectJumpBug = true;
 
 	// Instruction helpers
-	constexpr auto getTarget(AddressMode mode) -> uint16_t;
+	constexpr auto getTarget(AddressMode mode) -> ValueStore;
 	constexpr auto read(size_t address) -> uint8_t;
 	constexpr void write(size_t address, uint8_t value);
 	constexpr void push(uint8_t);
@@ -80,62 +109,62 @@ private:
 	void addWithCarry(uint8_t value);
 
 	// Instructions
-	void oADC(uint16_t);
-	void oAND(uint16_t);
-	void oASL(uint16_t);
-	void oBCC(uint16_t);
-	void oBCS(uint16_t);
-	void oBEQ(uint16_t);
-	void oBIT(uint16_t);
-	void oBMI(uint16_t);
-	void oBNE(uint16_t);
-	void oBPL(uint16_t);
-	void oBRK(uint16_t);
-	void oBVC(uint16_t);
-	void oBVS(uint16_t);
-	void oCLC(uint16_t);
-	void oCLD(uint16_t);
-	void oCLI(uint16_t);
-	void oCLV(uint16_t);
-	void oCMP(uint16_t);
-	void oCPX(uint16_t);
-	void oCPY(uint16_t);
-	void oDEC(uint16_t);
-	void oDEX(uint16_t);
-	void oDEY(uint16_t);
-	void oEOR(uint16_t);
-	void oINC(uint16_t);
-	void oINX(uint16_t);
-	void oINY(uint16_t);
-	void oJMP(uint16_t);
-	void oJSR(uint16_t);
-	void oLDA(uint16_t);
-	void oLDX(uint16_t);
-	void oLDY(uint16_t);
-	void oLSR(uint16_t);
-	void oNOP(uint16_t);
-	void oORA(uint16_t);
-	void oPHA(uint16_t);
-	void oPHP(uint16_t);
-	void oPLA(uint16_t);
-	void oPLP(uint16_t);
-	void oROL(uint16_t);
-	void oROR(uint16_t);
-	void oRTI(uint16_t);
-	void oRTS(uint16_t);
-	void oSBC(uint16_t);
-	void oSEC(uint16_t);
-	void oSED(uint16_t);
-	void oSEI(uint16_t);
-	void oSTA(uint16_t);
-	void oSTX(uint16_t);
-	void oSTY(uint16_t);
-	void oTAX(uint16_t);
-	void oTAY(uint16_t);
-	void oTSX(uint16_t);
-	void oTXA(uint16_t);
-	void oTXS(uint16_t);
-	void oTYA(uint16_t);
+	void oADC(ValueStore);
+	void oAND(ValueStore);
+	void oASL(ValueStore);
+	void oBCC(ValueStore);
+	void oBCS(ValueStore);
+	void oBEQ(ValueStore);
+	void oBIT(ValueStore);
+	void oBMI(ValueStore);
+	void oBNE(ValueStore);
+	void oBPL(ValueStore);
+	void oBRK(ValueStore);
+	void oBVC(ValueStore);
+	void oBVS(ValueStore);
+	void oCLC(ValueStore);
+	void oCLD(ValueStore);
+	void oCLI(ValueStore);
+	void oCLV(ValueStore);
+	void oCMP(ValueStore);
+	void oCPX(ValueStore);
+	void oCPY(ValueStore);
+	void oDEC(ValueStore);
+	void oDEX(ValueStore);
+	void oDEY(ValueStore);
+	void oEOR(ValueStore);
+	void oINC(ValueStore);
+	void oINX(ValueStore);
+	void oINY(ValueStore);
+	void oJMP(ValueStore);
+	void oJSR(ValueStore);
+	void oLDA(ValueStore);
+	void oLDX(ValueStore);
+	void oLDY(ValueStore);
+	void oLSR(ValueStore);
+	void oNOP(ValueStore);
+	void oORA(ValueStore);
+	void oPHA(ValueStore);
+	void oPHP(ValueStore);
+	void oPLA(ValueStore);
+	void oPLP(ValueStore);
+	void oROL(ValueStore);
+	void oROR(ValueStore);
+	void oRTI(ValueStore);
+	void oRTS(ValueStore);
+	void oSBC(ValueStore);
+	void oSEC(ValueStore);
+	void oSED(ValueStore);
+	void oSEI(ValueStore);
+	void oSTA(ValueStore);
+	void oSTX(ValueStore);
+	void oSTY(ValueStore);
+	void oTAX(ValueStore);
+	void oTAY(ValueStore);
+	void oTSX(ValueStore);
+	void oTXA(ValueStore);
+	void oTXS(ValueStore);
+	void oTYA(ValueStore);
 
 	// Instruction lookup table
 	using C = CPU;
@@ -213,4 +242,6 @@ private:
 		{&C::oSED         }, {&C::oSBC, M::AbsY}, {                 }, {},
 		{                 }, {&C::oSBC, M::AbsX}, {&C::oINC, M::AbsX}, {},
 	}};
+
+	friend class ValueStore;
 };

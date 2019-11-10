@@ -25,6 +25,29 @@ constexpr uint8_t wrapToByte(size_t value) {
 		return (value % 0xff) - 1;
 }
 
+constexpr void ValueStore::write(uint8_t value) {
+	switch(type) {
+		case Type::Accumulator: {
+			cpu.accumulator = 1;
+			break;
+		}
+		case Type::Memory: {
+			cpu.write(address, value);
+		}
+	}
+}
+
+constexpr auto ValueStore::read() -> uint8_t {
+	switch(type) {
+		case Type::Accumulator:
+			return cpu.accumulator;
+		case Type::Memory:
+			return cpu.read(address);
+	}
+
+	return 0;
+}
+
 constexpr void CPU::reset() {
 	memory = Memory{};
 	pc    = 0;
@@ -44,89 +67,116 @@ void CPU::execute() {
 }
 
 // Get the target address depending on the addressing mode
-constexpr uint16_t CPU::getTarget(AddressMode mode) {
+constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 	using Mode = AddressMode;
+	CPU& self = *this;
+
+	uint16_t targetAddress = 0;
 
 	switch (mode) {
 		// Instruction makes target implicit, e.g. CLC
-		case Mode::Implicit:
-			return 0;
+		case Mode::Implicit: {
+			targetAddress = 0;
+			break;
+		}
 
 		// Use value of accumulator, e.g. LSL A
 		case Mode::Accumulator:
-			return accumulator;
+			return {self};
 
 		// Use value of accumulator, e.g. LSL A
-		case Mode::Immediate:
-			return pc++;
+		case Mode::Immediate: {
+			targetAddress = pc++;
+			break;
+		}
 
 		// Use 16-bit value embedded in instruction, e.g. JMP $1234
 		case Mode::Absolute: {
 			const uint8_t low  = read(pc++),
 						  high = read(pc++);
-			return (high << 8) + low;
+			targetAddress = (high << 8) + low;
+			break;
 		}
 
 		// Like Absolute, but add value of register X, e.g. JMP $1234,X
-		case Mode::AbsoluteX:
-			return getTarget(Mode::Absolute) + indexX;
+		case Mode::AbsoluteX: {
+			targetAddress = getTarget(Mode::Absolute).address + indexX;
+			break;
+		}
 
 		// Like Absolute, but add value of register Y, e.g. JMP $1234,Y
-		case Mode::AbsoluteY:
-			return getTarget(Mode::Absolute) + indexY;
+		case Mode::AbsoluteY: {
+			targetAddress = getTarget(Mode::Absolute).address + indexY;
+			break;
+		}
 
 		// Use the value at the address embedded in the instruction
 		// e.g. JMP ($1234)
 		case Mode::Indirect: {
 			// indirectJumpBug: a hardware bug results in the increment
 			// actually flipping the lower byte from 0xff to 0x00
-			const uint8_t lowTarget  = read(getTarget(Mode::Absolute)),
+			const uint8_t lowTarget  = read(getTarget(Mode::Absolute).address),
 						  highTarget = indirectJumpBug && (lowTarget & 0xff)
 				? (lowTarget & 0xff00)
 				: lowTarget + 1;
 
 			const auto low  = read(lowTarget),
 					   high = read(highTarget);
-			return (high << 8) + low;
+			targetAddress = (high << 8) + low;
+			break;
 		}
 
 		// Like Indirect, but add value of register X, e.g. JMP ($1234,X)
-		case Mode::IndirectX:
-			return getTarget(Mode::Indirect) + indexX;
+		case Mode::IndirectX: {
+			targetAddress = getTarget(Mode::Indirect).address + indexX;
+			break;
+		}
 
 		// Like Indirect, but add value of register Y, e.g. JMP ($1234,Y)
-		case Mode::IndirectY:
-			return getTarget(Mode::Indirect) + indexY;
+		case Mode::IndirectY: {
+			targetAddress = getTarget(Mode::Indirect).address + indexY;
+			break;
+		}
 
 		// Use the value embedded in the instruction as a signed offset
 		// from the program counter (after the instruction has been decoded)
 		case Mode::Relative: {
-			const uint8_t value     = getTarget(Mode::Immediate),
+			const uint8_t value     = getTarget(Mode::Immediate).address,
 						  lowerBits = value ^ 0b1000'0000;
 			// Two's complement: when the high bit is set the number is
 			// negative, in which case flip the lower bits and add one.
 			// If positive the original value is correct
 			if (isNegative(value))
-				return pc - (~lowerBits + 1);
+				targetAddress = pc - (~lowerBits + 1);
 			else
-				return pc + value;
+				targetAddress = pc + value;
+
+			break;
 		}
 
 		// Use the 4-bit value embedded in the instruction as an offset from the
 		// beginning of memory
-		case Mode::Zeropage:
-			 return read(pc++);
+		case Mode::Zeropage: {
+			targetAddress = read(pc++);
+			break;
+		}
 
 		// Like Zeropage, but add value of register X and wrap within the page
-		case Mode::ZeropageX:
-			 return wrapToByte(getTarget(Mode::Immediate) + indexX);
+		case Mode::ZeropageX: {
+			targetAddress = wrapToByte(
+				getTarget(Mode::Immediate).address + indexX);
+			break;
+		}
 
 		// Like Zeropage, but add value of register Y and wrap within the page
-		case Mode::ZeropageY:
-			 return wrapToByte(getTarget(Mode::Immediate) + indexY);
+		case Mode::ZeropageY: {
+			targetAddress = wrapToByte(
+				getTarget(Mode::Immediate).address + indexY);
+			break;
+		}
 	}
 
-	return 0;
+	return {self, targetAddress};
 }
 
 constexpr void CPU::branch(uint16_t address) {
@@ -182,294 +232,294 @@ void CPU::addWithCarry(uint8_t input) {
 	accumulator = wrapToByte(result);
 }
 
-void CPU::oADC(uint16_t address) {
-	addWithCarry(read(address));
+void CPU::oADC(ValueStore address) {
+	addWithCarry(address.read());
 }
 
-void CPU::oAND(uint16_t address) {
-	const auto input = read(address);
+void CPU::oAND(ValueStore address) {
+	const auto input = address.read();
 	accumulator &= input;
 	setZeroNegative(accumulator);
 }
 
-void CPU::oASL(uint16_t address) {
-	const auto input = read(address);
+void CPU::oASL(ValueStore address) {
+	const auto input = address.read();
 	flags[Carry] = getBit(7, input);
 
 	const auto result = input << 1;
 	setZeroNegative(result);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oBCC(uint16_t target) {
+void CPU::oBCC(ValueStore target) {
 	if (!flags[Carry])
-		branch(target);
+		branch(target.read());
 }
 
-void CPU::oBCS(uint16_t target) {
+void CPU::oBCS(ValueStore target) {
 	if (flags[Carry])
-		branch(target);
+		branch(target.read());
 }
 
-void CPU::oBEQ(uint16_t target) {
+void CPU::oBEQ(ValueStore target) {
 	if (flags[Zero])
-		branch(target);
+		branch(target.read());
 }
 
-void CPU::oBIT(uint16_t address) {
-	const auto input = read(address);
+void CPU::oBIT(ValueStore address) {
+	const auto input = address.read();
 	setZeroNegative(input);
 }
 
-void CPU::oBMI(uint16_t target) {
+void CPU::oBMI(ValueStore target) {
 	if (flags[Negative])
-		branch(target);
+		branch(target.read());
 }
 
-void CPU::oBNE(uint16_t target) {
+void CPU::oBNE(ValueStore target) {
 	if (!flags[Zero])
-		branch(target);
+		branch(target.read());
 }
 
-void CPU::oBPL(uint16_t target) {
+void CPU::oBPL(ValueStore target) {
 	if (!flags[Negative])
-		branch(target);
+		branch(target.read());
 }
 
-void CPU::oBRK(uint16_t) {
+void CPU::oBRK(ValueStore) {
 	flags[InterruptOff] = 1;
 	
 	push2(pc);
 	push(static_cast<uint8_t>(flags.to_ulong()));
 }
 
-void CPU::oBVC(uint16_t address) {
+void CPU::oBVC(ValueStore address) {
 	if (!flags[Overflow])
-		branch(address);
+		branch(address.read());
 }
 
-void CPU::oBVS(uint16_t address) {
+void CPU::oBVS(ValueStore address) {
 	if (flags[Overflow])
-		branch(address);
+		branch(address.read());
 }
 
-void CPU::oCLC(uint16_t) {
+void CPU::oCLC(ValueStore) {
 	flags[Carry] = 0;
 }
 
-void CPU::oCLD(uint16_t) {
+void CPU::oCLD(ValueStore) {
 	flags[Decimal] = 0;
 }
 
-void CPU::oCLI(uint16_t) {
+void CPU::oCLI(ValueStore) {
 	flags[InterruptOff] = 0;
 }
 
-void CPU::oCLV(uint16_t) {
+void CPU::oCLV(ValueStore) {
 	flags[Overflow] = 0;
 }
 
-void CPU::oCMP(uint16_t address) {
-	const auto input = read(address);
+void CPU::oCMP(ValueStore address) {
+	const auto input = address.read();
 	compare(accumulator, input);
 }
 
-void CPU::oCPX(uint16_t address) {
-	const auto input = read(address);
+void CPU::oCPX(ValueStore address) {
+	const auto input = address.read();
 	compare(indexX, input);
 }
 
-void CPU::oCPY(uint16_t address) {
-	const auto input = read(address);
+void CPU::oCPY(ValueStore address) {
+	const auto input = address.read();
 	compare(indexY, input);
 }
 
-void CPU::oDEC(uint16_t address) {
-	const auto input = read(address);
+void CPU::oDEC(ValueStore address) {
+	const auto input = address.read();
 	const auto result = input - 1;
 	setZeroNegative(result);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oDEX(uint16_t) {
+void CPU::oDEX(ValueStore) {
 	const auto result = indexX - 1;
 	setZeroNegative(result);
 	indexX = result;
 }
 
-void CPU::oDEY(uint16_t) {
+void CPU::oDEY(ValueStore) {
 	const auto result = indexY - 1;
 	setZeroNegative(result);
 	indexY = result;
 }
 
-void CPU::oEOR(uint16_t address) {
-	const auto input = read(address);
+void CPU::oEOR(ValueStore address) {
+	const auto input = address.read();
 	const auto result = accumulator ^ input;
 	setZeroNegative(result);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oINC(uint16_t address) {
-	const auto input = read(address);
+void CPU::oINC(ValueStore address) {
+	const auto input = address.read();
 	const auto result = input + 1;
 	setZeroNegative(result);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oINX(uint16_t) {
+void CPU::oINX(ValueStore) {
 	const auto result = indexX - 1;
 	setZeroNegative(result);
 	indexX = result;
 }
 
-void CPU::oINY(uint16_t) {
+void CPU::oINY(ValueStore) {
 	const auto result = indexY - 1;
 	setZeroNegative(result);
 	indexY = result;
 }
 
-void CPU::oJMP(uint16_t address) {
-	pc = address;
+void CPU::oJMP(ValueStore address) {
+	pc = address.read();
 }
 
-void CPU::oJSR(uint16_t address) {
+void CPU::oJSR(ValueStore address) {
 	push2(pc);
-	pc = address;
+	pc = address.read();
 }
 
-void CPU::oLDA(uint16_t address) {
-	const auto input = read(address);
+void CPU::oLDA(ValueStore address) {
+	const auto input = address.read();
 	accumulator = input;
 	setZeroNegative(input);
 }
 
-void CPU::oLDX(uint16_t address) {
-	const auto input = read(address);
+void CPU::oLDX(ValueStore address) {
+	const auto input = address.read();
 	indexX = input;
 	setZeroNegative(input);
 }
 
-void CPU::oLDY(uint16_t address) {
-	const auto input = read(address);
+void CPU::oLDY(ValueStore address) {
+	const auto input = address.read();
 	indexY = input;
 	setZeroNegative(input);
 }
 
-void CPU::oLSR(uint16_t address) {
-	const auto input = read(address);
+void CPU::oLSR(ValueStore address) {
+	const auto input = address.read();
 	const auto result = input >> 1;
 	setZeroNegative(result);
 	flags[Carry] = getBit(0, input);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oNOP(uint16_t) {
+void CPU::oNOP(ValueStore) {
 }
 
-void CPU::oORA(uint16_t address) {
-	const auto input = read(address);
+void CPU::oORA(ValueStore address) {
+	const auto input = address.read();
 	const auto result = accumulator | input;
 	setZeroNegative(result);
 	accumulator = result;
 }
 
-void CPU::oPHA(uint16_t) {
+void CPU::oPHA(ValueStore) {
 	push(accumulator);
 }
 
-void CPU::oPHP(uint16_t) {
+void CPU::oPHP(ValueStore) {
 	push(static_cast<uint8_t>(flags.to_ulong()));
 }
 
-void CPU::oPLA(uint16_t) {
+void CPU::oPLA(ValueStore) {
 	accumulator = pop();
 }
 
-void CPU::oPLP(uint16_t) {
+void CPU::oPLP(ValueStore) {
 	flags = pop();
 }
 
-void CPU::oROL(uint16_t address) {
-	const auto input = read(address);
+void CPU::oROL(ValueStore address) {
+	const auto input = address.read();
 	const auto result = setBit(0, input << 1, flags[Carry]);
 
 	flags[Carry] = getBit(7, input);
 	setZeroNegative(result);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oROR(uint16_t address) {
-	const auto input = read(address);
+void CPU::oROR(ValueStore address) {
+	const auto input = address.read();
 	const auto result = setBit(7, input >> 1, flags[Carry]);
 
 	flags[Carry] = getBit(0, input);
 	setZeroNegative(result);
-	write(address, result);
+	address.write(result);
 }
 
-void CPU::oRTI(uint16_t) {
+void CPU::oRTI(ValueStore) {
 	flags = pop();
 	pc    = pop2();
 }
 
-void CPU::oRTS(uint16_t) {
+void CPU::oRTS(ValueStore) {
 	pc = pop2();
 }
 
-void CPU::oSBC(uint16_t address) {
-	addWithCarry(~read(address));
+void CPU::oSBC(ValueStore address) {
+	addWithCarry(~address.read());
 }
 
-void CPU::oSEC(uint16_t) {
+void CPU::oSEC(ValueStore) {
 	flags[Carry] = 1;
 }
 
-void CPU::oSED(uint16_t) {
+void CPU::oSED(ValueStore) {
 	flags[Decimal] = 1;
 }
 
-void CPU::oSEI(uint16_t) {
+void CPU::oSEI(ValueStore) {
 	flags[InterruptOff] = 1;
 }
 
-void CPU::oSTA(uint16_t address) {
-	write(address, accumulator);
+void CPU::oSTA(ValueStore address) {
+	address.write(accumulator);
 }
 
-void CPU::oSTX(uint16_t address) {
-	write(address, indexX);
+void CPU::oSTX(ValueStore address) {
+	address.write(indexX);
 }
 
-void CPU::oSTY(uint16_t address) {
-	write(address, indexY);
+void CPU::oSTY(ValueStore address) {
+	address.write(indexY);
 }
 
-void CPU::oTAX(uint16_t) {
+void CPU::oTAX(ValueStore) {
 	indexX = accumulator;
 	setZeroNegative(indexX);
 }
 
-void CPU::oTAY(uint16_t) {
+void CPU::oTAY(ValueStore) {
 	indexY = accumulator;
 	setZeroNegative(indexY);
 }
 
-void CPU::oTSX(uint16_t) {
+void CPU::oTSX(ValueStore) {
 	indexX = stack;
 	setZeroNegative(indexX);
 }
 
-void CPU::oTXA(uint16_t) {
+void CPU::oTXA(ValueStore) {
 	accumulator = indexX;
 	setZeroNegative(accumulator);
 }
 
-void CPU::oTXS(uint16_t) {
+void CPU::oTXS(ValueStore) {
 	stack = indexX;
 }
 
-void CPU::oTYA(uint16_t) {
+void CPU::oTYA(ValueStore) {
 	accumulator = indexY;
 	setZeroNegative(accumulator);
 }
