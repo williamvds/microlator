@@ -2,8 +2,6 @@
 
 #include "cpu.hpp"
 
-constexpr auto stackTop   = 0x100;
-
 constexpr uint8_t setBit(uint8_t index, uint8_t value, bool set) {
 	return value | (set << index);
 }
@@ -50,8 +48,8 @@ constexpr auto ValueStore::read() -> uint8_t {
 
 constexpr void CPU::reset() {
 	memory = Memory{};
-	pc    = 0;
-	stack = 0xff;
+	pc    = initialProgramCounter;
+	stack = initialStackPointer;
 	flags = 0;
 }
 

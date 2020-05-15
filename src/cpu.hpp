@@ -81,14 +81,18 @@ public:
 	uint8_t  accumulator{0};
 	uint8_t  indexX{0};
 	uint8_t  indexY{0};
-	uint8_t  stack{0};
-	uint16_t pc{0xff};
+	uint8_t  stack{initialStackPointer};
+	uint16_t pc{initialProgramCounter};
 	std::bitset<8> flags{0};
 
 	using Memory = std::array<uint8_t, MEMORY_SIZE_BYTES>;
 	Memory memory{};
 
 private:
+	constexpr static auto stackTop              = 0x100;
+	constexpr static auto initialStackPointer   = 0xff;
+	constexpr static auto initialProgramCounter = 0x600;
+
 	bool indirectJumpBug = true;
 
 	// Instruction lookup table
