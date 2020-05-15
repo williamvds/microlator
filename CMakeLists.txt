@@ -12,7 +12,7 @@ add_library(microlator
 )
 
 target_include_directories(microlator
-PRIVATE
+PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -36,3 +36,9 @@ PRIVATE
 		-fsanitize=undefined
 	>
 )
+
+include(CTest)
+if (BUILD_TESTING)
+	add_subdirectory(test)
+	enable_testing()
+endif()
