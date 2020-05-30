@@ -6,16 +6,26 @@ add_executable(microlator_test
 	testCPU.cpp
 )
 
+target_include_directories(microlator_test
+PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}/test
+)
+
 target_link_libraries(microlator_test
 	microlator
-	-fsanitize=address
-	-fsanitize=undefined
 )
 
 target_compile_options(microlator_test
 PRIVATE
-	-fsanitize=address
-	-fsanitize=undefined
+	-Wall
+	-Wextra
+	-Werror
+	-Wpedantic
+)
+
+target_compile_features(microlator_test
+PRIVATE
+	cxx_std_20
 )
 
 add_test(

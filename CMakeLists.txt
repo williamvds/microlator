@@ -31,6 +31,15 @@ PRIVATE
 	-Werror
 	-Wpedantic
 
+PUBLIC
+	$<$<CONFIG:Debug>:
+		-fsanitize=address
+		-fsanitize=undefined
+	>
+)
+
+target_link_libraries(microlator
+PUBLIC
 	$<$<CONFIG:Debug>:
 		-fsanitize=address
 		-fsanitize=undefined
