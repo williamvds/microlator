@@ -83,7 +83,7 @@ public:
 	uint8_t  indexY{0};
 	uint8_t  stack{initialStackPointer};
 	uint16_t pc{initialProgramCounter};
-	std::bitset<8> flags{0};
+	std::bitset<8> flags{Unused};
 
 	using Memory = std::array<uint8_t, MEMORY_SIZE_BYTES>;
 	Memory memory{};
