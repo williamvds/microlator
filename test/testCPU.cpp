@@ -4,7 +4,7 @@
 
 TEST_CASE("CPU can execute", "[cpu]") {
 	auto cpu = CPU();
-	cpu.execute();
+	cpu.step();
 
 	REQUIRE(cpu.pc == 0x601);
 }

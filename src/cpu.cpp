@@ -53,7 +53,7 @@ constexpr void CPU::reset() {
 	flags = 0;
 }
 
-void CPU::execute() {
+void CPU::step() {
 	const auto opcode = read(pc++);
 
 	static auto instructions = CPU::getInstructions();

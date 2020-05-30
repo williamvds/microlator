@@ -75,7 +75,7 @@ struct Instruction {
 class CPU {
 public:
 	constexpr void reset();
-	void execute();
+	void step();
 
 	// Registers
 	uint8_t  accumulator{0};
