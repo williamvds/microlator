@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <functional>
+#include <stdexcept>
 
 #include "cpu.hpp"
 
@@ -53,16 +55,30 @@ constexpr void CPU::reset() {
 	flags = 0;
 }
 
-void CPU::step() {
+void CPU::loadProgram(const std::span<const uint8_t> program, uint16_t offset) {
+	if (offset + program.size() > memory.size())
+		throw std::invalid_argument{"Program can't fit in memory"};
+
+	std::copy(program.begin(), program.end(), memory.begin() + offset);
+	pc = offset;
+}
+
+void CPU::loadProgram(const std::span<const uint8_t> program) {
+	loadProgram(program, initialProgramCounter);
+}
+
+bool CPU::step() {
 	const auto opcode = read(pc++);
 
 	static auto instructions = CPU::getInstructions();
 	const auto instruction = instructions[opcode];
 	if (!instruction.function)
-		return;
+		return false;
 
 	const auto target = getTarget(instruction.addressMode);
 	std::invoke(instruction.function, this, target);
+
+	return true;
 }
 
 // Get the target address depending on the addressing mode

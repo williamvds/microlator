@@ -18,7 +18,7 @@ PUBLIC
 
 target_compile_features(microlator
 PRIVATE
-	cxx_std_17
+	cxx_std_20
 	cxx_auto_type
 	cxx_trailing_return_types
 	cxx_constexpr

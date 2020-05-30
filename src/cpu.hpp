@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <span>
 #include <array>
 #include <bitset>
 #include <optional>
@@ -75,7 +76,11 @@ struct Instruction {
 class CPU {
 public:
 	constexpr void reset();
-	void step();
+	// TODO: loadProgram should be constexpr, but GCC says "inline function
+	// [...] used but never defined" if it is declared constexpr
+	void loadProgram(std::span<const uint8_t> program, uint16_t offset);
+	void loadProgram(std::span<const uint8_t> program);
+	bool step();
 
 	// Registers
 	uint8_t  accumulator{0};
