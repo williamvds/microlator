@@ -52,7 +52,7 @@ constexpr void CPU::reset() {
 	memory = Memory{};
 	pc    = initialProgramCounter;
 	stack = initialStackPointer;
-	flags = 0;
+	flags = Unused|InterruptOff;
 }
 
 void CPU::loadProgram(const std::span<const uint8_t> program, uint16_t offset) {
