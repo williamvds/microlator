@@ -302,7 +302,7 @@ void CPU::oBPL(ValueStore target) {
 }
 
 void CPU::oBRK(ValueStore) {
-	flags[InterruptOff] = 1;
+	flags[InterruptOff] = true;
 	
 	push2(pc);
 	push(static_cast<uint8_t>(flags.to_ulong()));
@@ -319,19 +319,19 @@ void CPU::oBVS(ValueStore address) {
 }
 
 void CPU::oCLC(ValueStore) {
-	flags[Carry] = 0;
+	flags[Carry] = false;
 }
 
 void CPU::oCLD(ValueStore) {
-	flags[Decimal] = 0;
+	flags[Decimal] = false;
 }
 
 void CPU::oCLI(ValueStore) {
-	flags[InterruptOff] = 0;
+	flags[InterruptOff] = false;
 }
 
 void CPU::oCLV(ValueStore) {
-	flags[Overflow] = 0;
+	flags[Overflow] = false;
 }
 
 void CPU::oCMP(ValueStore address) {
@@ -487,15 +487,15 @@ void CPU::oSBC(ValueStore address) {
 }
 
 void CPU::oSEC(ValueStore) {
-	flags[Carry] = 1;
+	flags[Carry] = true;
 }
 
 void CPU::oSED(ValueStore) {
-	flags[Decimal] = 1;
+	flags[Decimal] = true;
 }
 
 void CPU::oSEI(ValueStore) {
-	flags[InterruptOff] = 1;
+	flags[InterruptOff] = true;
 }
 
 void CPU::oSTA(ValueStore address) {
