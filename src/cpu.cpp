@@ -4,20 +4,20 @@
 
 #include "cpu.hpp"
 
-constexpr uint8_t setBit(uint8_t index, uint8_t value, bool set) {
-	return value | (set << index);
+constexpr auto setBit(uint8_t index, uint8_t value, bool set) -> uint8_t {
+	return value | (static_cast<int>(set) << index);
 }
 
-constexpr bool getBit(uint8_t index, uint8_t value) {
+constexpr auto getBit(uint8_t index, uint8_t value) -> bool {
 	return (value >> index) & 1;
 }
 
-constexpr bool isNegative(uint8_t value) {
+constexpr auto isNegative(uint8_t value) -> bool {
 	// Two's complement: top bit means negative
 	return getBit(7, value);
 }
 
-constexpr uint8_t wrapToByte(size_t value) {
+constexpr auto wrapToByte(size_t value) -> bool {
 	// Subtract one if wrapping to remove carry
 	if (value <= 0xff)
 		return value;
@@ -67,7 +67,7 @@ void CPU::loadProgram(const std::span<const uint8_t> program) {
 	loadProgram(program, initialProgramCounter);
 }
 
-bool CPU::step() {
+auto CPU::step() -> bool {
 	const auto opcode = read(pc++);
 
 	static auto instructions = CPU::getInstructions();
@@ -198,7 +198,7 @@ constexpr void CPU::branch(uint16_t address) {
 	pc = address;
 }
 
-constexpr uint8_t CPU::read(size_t address) {
+constexpr auto CPU::read(size_t address) -> uint8_t {
 	return memory[address];
 }
 
