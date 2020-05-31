@@ -71,7 +71,7 @@ auto CPU::step() -> bool {
 	const auto opcode = read(pc++);
 
 	static auto instructions = CPU::getInstructions();
-	const auto instruction = instructions[opcode];
+	const auto instruction = instructions.at(opcode);
 	if (!instruction.function)
 		return false;
 
