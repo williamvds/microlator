@@ -4,6 +4,9 @@
 
 #include "cpu.hpp"
 
+constexpr auto u8Max = 0xff;
+constexpr auto u16Upper = 0xff00;
+
 constexpr auto setBit(uint8_t index, uint8_t value, bool set) -> uint8_t {
 	return value | (static_cast<int>(set) << index);
 }
@@ -19,10 +22,10 @@ constexpr auto isNegative(uint8_t value) -> bool {
 
 constexpr auto wrapToByte(size_t value) -> bool {
 	// Subtract one if wrapping to remove carry
-	if (value <= 0xff)
+	if (value <= u8Max)
 		return value;
 	else
-		return (value % 0xff) - 1;
+		return (value % u8Max) - 1;
 }
 
 constexpr void ValueStore::write(uint8_t value) {
@@ -131,8 +134,8 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 			// indirectJumpBug: a hardware bug results in the increment
 			// actually flipping the lower byte from 0xff to 0x00
 			const uint8_t lowTarget  = read(getTarget(Mode::Absolute).address),
-						  highTarget = indirectJumpBug && (lowTarget & 0xff)
-				? (lowTarget & 0xff00)
+						  highTarget = indirectJumpBug && (lowTarget & u8Max)
+				? (lowTarget & u16Upper)
 				: lowTarget + 1;
 
 			const auto low  = read(lowTarget),
@@ -212,7 +215,7 @@ constexpr void CPU::push(uint8_t value) {
 
 constexpr void CPU::push2(uint16_t value) {
 	push(static_cast<uint8_t>(value >> 8));
-	push(static_cast<uint8_t>(value & 0xff));
+	push(static_cast<uint8_t>(value & u8Max));
 }
 
 constexpr auto CPU::pop() -> uint8_t {
@@ -229,8 +232,8 @@ void CPU::setZeroNegative(uint8_t value) {
 }
 
 void CPU::setOverflowCarry(size_t value) {
-	flags[Carry]    = value == 0xff;
-	flags[Overflow] = value >  0xff;
+	flags[Carry]    = value == u8Max;
+	flags[Overflow] = value >  u8Max;
 }
 
 void CPU::compare(size_t a, size_t b) {
