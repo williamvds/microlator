@@ -11,15 +11,15 @@ constexpr auto MEMORY_SIZE_BYTES = 65536;
 
 class CPU;
 
-enum Flag {
-	Carry        = (1 << 0),
-	Zero         = (1 << 1),
-	InterruptOff = (1 << 2),
-	Decimal      = (1 << 3),
-	Break        = (1 << 4),
-	Unused       = (1 << 5),
-	Overflow     = (1 << 6),
-	Negative     = (1 << 7),
+enum Flags {
+	Carry,
+	Zero,
+	InterruptOff,
+	Decimal,
+	Break,
+	Unused,
+	Overflow,
+	Negative,
 };
 
 enum class AddressMode {
@@ -88,7 +88,7 @@ public:
 	uint8_t  indexY{0};
 	uint8_t  stack{initialStackPointer};
 	uint16_t pc{initialProgramCounter};
-	std::bitset<8> flags{Unused|InterruptOff};
+	std::bitset<8> flags{initialFlags};
 
 	using Memory = std::array<uint8_t, MEMORY_SIZE_BYTES>;
 	Memory memory{};
@@ -97,6 +97,7 @@ private:
 	constexpr static auto stackTop              = 0x100;
 	constexpr static auto initialStackPointer   = 0xfd;
 	constexpr static auto initialProgramCounter = 0x600;
+	constexpr static auto initialFlags = (1U << Unused) | (1U << InterruptOff);
 
 	bool indirectJumpBug = true;
 

@@ -55,7 +55,7 @@ constexpr void CPU::reset() {
 	memory = Memory{};
 	pc    = initialProgramCounter;
 	stack = initialStackPointer;
-	flags = Unused|InterruptOff;
+	flags = initialFlags;
 }
 
 void CPU::loadProgram(const std::span<const uint8_t> program, uint16_t offset) {
@@ -227,24 +227,24 @@ constexpr auto CPU::pop2() -> uint16_t {
 }
 
 void CPU::setZeroNegative(uint8_t value) {
-	flags[Zero]     = value == 0;
-	flags[Negative] = isNegative(value);
+	flags.set(Zero,     value == 0);
+	flags.set(Negative, isNegative(value));
 }
 
 void CPU::setOverflowCarry(size_t value) {
-	flags[Carry]    = value == u8Max;
-	flags[Overflow] = value >  u8Max;
+	flags.set(Carry,    value == u8Max);
+	flags.set(Overflow, value >  u8Max);
 }
 
 void CPU::compare(size_t a, size_t b) {
-	flags[Zero]     = a == b;
-	flags[Carry]    = a >  b;
-	flags[Negative] = a <  b;
+	flags.set(Zero,     a == b);
+	flags.set(Carry,    a >  b);
+	flags.set(Negative, a <  b);
 }
 
 void CPU::addWithCarry(uint8_t input) {
 	// TODO: implement decimal mode
-	const uint16_t result = accumulator + input + (flags[Carry] ? 1 : 0);
+	const uint16_t result = accumulator + input + (flags.test(Carry) ? 1 : 0);
 	setOverflowCarry(result);
 	setZeroNegative(result);
 	accumulator = wrapToByte(result);
@@ -262,7 +262,7 @@ void CPU::oAND(ValueStore address) {
 
 void CPU::oASL(ValueStore address) {
 	const auto input = address.read();
-	flags[Carry] = getBit(7, input);
+	flags.set(Carry, getBit(7, input));
 
 	const auto result = input << 1;
 	setZeroNegative(result);
@@ -270,17 +270,17 @@ void CPU::oASL(ValueStore address) {
 }
 
 void CPU::oBCC(ValueStore target) {
-	if (!flags[Carry])
+	if (!flags.test(Carry))
 		branch(target.read());
 }
 
 void CPU::oBCS(ValueStore target) {
-	if (flags[Carry])
+	if (flags.test(Carry))
 		branch(target.read());
 }
 
 void CPU::oBEQ(ValueStore target) {
-	if (flags[Zero])
+	if (flags.test(Zero))
 		branch(target.read());
 }
 
@@ -290,51 +290,51 @@ void CPU::oBIT(ValueStore address) {
 }
 
 void CPU::oBMI(ValueStore target) {
-	if (flags[Negative])
+	if (flags.test(Negative))
 		branch(target.read());
 }
 
 void CPU::oBNE(ValueStore target) {
-	if (!flags[Zero])
+	if (!flags.test(Zero))
 		branch(target.read());
 }
 
 void CPU::oBPL(ValueStore target) {
-	if (!flags[Negative])
+	if (!flags.test(Negative))
 		branch(target.read());
 }
 
 void CPU::oBRK(ValueStore) {
-	flags[InterruptOff] = true;
+	flags.set(InterruptOff, true);
 	
 	push2(pc);
 	push(static_cast<uint8_t>(flags.to_ulong()));
 }
 
 void CPU::oBVC(ValueStore address) {
-	if (!flags[Overflow])
+	if (!flags.test(Overflow))
 		branch(address.read());
 }
 
 void CPU::oBVS(ValueStore address) {
-	if (flags[Overflow])
+	if (flags.test(Overflow))
 		branch(address.read());
 }
 
 void CPU::oCLC(ValueStore) {
-	flags[Carry] = false;
+	flags.set(Carry, false);
 }
 
 void CPU::oCLD(ValueStore) {
-	flags[Decimal] = false;
+	flags.set(Decimal, false);
 }
 
 void CPU::oCLI(ValueStore) {
-	flags[InterruptOff] = false;
+	flags.set(InterruptOff, false);
 }
 
 void CPU::oCLV(ValueStore) {
-	flags[Overflow] = false;
+	flags.set(Overflow, false);
 }
 
 void CPU::oCMP(ValueStore address) {
@@ -428,7 +428,7 @@ void CPU::oLSR(ValueStore address) {
 	const auto input = address.read();
 	const auto result = input >> 1;
 	setZeroNegative(result);
-	flags[Carry] = getBit(0, input);
+	flags.set(Carry, getBit(0, input));
 	address.write(result);
 }
 
@@ -460,18 +460,18 @@ void CPU::oPLP(ValueStore) {
 
 void CPU::oROL(ValueStore address) {
 	const auto input = address.read();
-	const auto result = setBit(0, input << 1, flags[Carry]);
+	const auto result = setBit(0, input << 1, flags.test(Carry));
 
-	flags[Carry] = getBit(7, input);
+	flags.set(Carry, getBit(7, input));
 	setZeroNegative(result);
 	address.write(result);
 }
 
 void CPU::oROR(ValueStore address) {
 	const auto input = address.read();
-	const auto result = setBit(7, input >> 1, flags[Carry]);
+	const auto result = setBit(7, input >> 1, flags.test(Carry));
 
-	flags[Carry] = getBit(0, input);
+	flags.set(Carry, getBit(0, input));
 	setZeroNegative(result);
 	address.write(result);
 }
@@ -490,15 +490,15 @@ void CPU::oSBC(ValueStore address) {
 }
 
 void CPU::oSEC(ValueStore) {
-	flags[Carry] = true;
+	flags.set(Carry, true);
 }
 
 void CPU::oSED(ValueStore) {
-	flags[Decimal] = true;
+	flags.set(Decimal, true);
 }
 
 void CPU::oSEI(ValueStore) {
-	flags[InterruptOff] = true;
+	flags.set(InterruptOff, true);
 }
 
 void CPU::oSTA(ValueStore address) {
