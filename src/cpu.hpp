@@ -95,7 +95,7 @@ public:
 
 private:
 	constexpr static auto stackTop              = 0x100;
-	constexpr static auto initialStackPointer   = 0xff;
+	constexpr static auto initialStackPointer   = 0xfd;
 	constexpr static auto initialProgramCounter = 0x600;
 
 	bool indirectJumpBug = true;
