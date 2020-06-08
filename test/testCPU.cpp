@@ -42,8 +42,8 @@ TEST_CASE("CPU passes nestest", "[cpu]") {
 	for (auto&& state : nestestStates) {
 		INFO("PC: " << std::hex << state.pc);
 
-		REQUIRE(cpu.pc == state.pc);
-		REQUIRE(cpu.accumulator == state.a);
+		REQUIRE(static_cast<unsigned>(cpu.pc) == static_cast<unsigned>(state.pc));
+		REQUIRE(static_cast<unsigned>(cpu.accumulator) == static_cast<unsigned>(state.a));
 		REQUIRE(static_cast<unsigned>(cpu.indexX) == static_cast<unsigned>(state.x));
 		REQUIRE(static_cast<unsigned>(cpu.indexY) == static_cast<unsigned>(state.y));
 		REQUIRE(cpu.flags == state.p);
