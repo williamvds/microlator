@@ -28,27 +28,33 @@ constexpr auto wrapToByte(size_t value) -> bool {
 		return (value % u8Max) - 1;
 }
 
-constexpr void ValueStore::write(uint8_t value) {
+constexpr void ValueStore::write(uint8_t newValue) {
 	switch(type) {
 		case Type::Accumulator: {
-			cpu.accumulator = 1;
+			cpu.accumulator = newValue;
 			break;
 		}
 		case Type::Memory: {
-			cpu.write(address, value);
+			cpu.write(value, newValue);
+			break;
+		}
+		case Type::Value: {
+			throw std::logic_error{"Attempt to write to a raw value"};
 		}
 	}
 }
 
-constexpr auto ValueStore::read() -> uint8_t {
+constexpr auto ValueStore::read() -> uint16_t {
 	switch(type) {
 		case Type::Accumulator:
 			return cpu.accumulator;
 		case Type::Memory:
-			return cpu.read(address);
+			return cpu.read(value);
+		case Type::Value:
+			return value;
 	}
 
-	return 0;
+	throw std::logic_error{"Unhandled ValueStore::read()"};
 }
 
 constexpr void CPU::reset() {
@@ -102,29 +108,29 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		case Mode::Accumulator:
 			return {self};
 
-		// Use value of accumulator, e.g. LSL A
+		// Use value at next address e.g. LDX #$00
 		case Mode::Immediate: {
-			targetAddress = pc++;
-			break;
+			return {self, read(pc++), ValueStore::Type::Value};
 		}
 
 		// Use 16-bit value embedded in instruction, e.g. JMP $1234
 		case Mode::Absolute: {
 			const uint8_t low  = read(pc++),
 						  high = read(pc++);
-			targetAddress = (high << 8) + low;
+			uint16_t value = (high << 8) + low;
+			return {self, value};
 			break;
 		}
 
 		// Like Absolute, but add value of register X, e.g. JMP $1234,X
 		case Mode::AbsoluteX: {
-			targetAddress = getTarget(Mode::Absolute).address + indexX;
+			targetAddress = getTarget(Mode::Absolute).value + indexX;
 			break;
 		}
 
 		// Like Absolute, but add value of register Y, e.g. JMP $1234,Y
 		case Mode::AbsoluteY: {
-			targetAddress = getTarget(Mode::Absolute).address + indexY;
+			targetAddress = getTarget(Mode::Absolute).value + indexY;
 			break;
 		}
 
@@ -133,7 +139,7 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		case Mode::Indirect: {
 			// indirectJumpBug: a hardware bug results in the increment
 			// actually flipping the lower byte from 0xff to 0x00
-			const uint8_t lowTarget  = read(getTarget(Mode::Absolute).address),
+			const uint8_t lowTarget  = read(getTarget(Mode::Absolute).value),
 						  highTarget = indirectJumpBug && (lowTarget & u8Max)
 				? (lowTarget & u16Upper)
 				: lowTarget + 1;
@@ -146,20 +152,20 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 
 		// Like Indirect, but add value of register X, e.g. JMP ($1234,X)
 		case Mode::IndirectX: {
-			targetAddress = getTarget(Mode::Indirect).address + indexX;
+			targetAddress = getTarget(Mode::Indirect).value + indexX;
 			break;
 		}
 
 		// Like Indirect, but add value of register Y, e.g. JMP ($1234,Y)
 		case Mode::IndirectY: {
-			targetAddress = getTarget(Mode::Indirect).address + indexY;
+			targetAddress = getTarget(Mode::Indirect).value + indexY;
 			break;
 		}
 
 		// Use the value embedded in the instruction as a signed offset
 		// from the program counter (after the instruction has been decoded)
 		case Mode::Relative: {
-			const uint8_t value     = getTarget(Mode::Immediate).address,
+			const uint8_t value     = getTarget(Mode::Immediate).value,
 						  lowerBits = value ^ 0b1000'0000;
 			// Two's complement: when the high bit is set the number is
 			// negative, in which case flip the lower bits and add one.
@@ -182,14 +188,14 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		// Like Zeropage, but add value of register X and wrap within the page
 		case Mode::ZeropageX: {
 			targetAddress = wrapToByte(
-				getTarget(Mode::Immediate).address + indexX);
+				getTarget(Mode::Immediate).value + indexX);
 			break;
 		}
 
 		// Like Zeropage, but add value of register Y and wrap within the page
 		case Mode::ZeropageY: {
 			targetAddress = wrapToByte(
-				getTarget(Mode::Immediate).address + indexY);
+				getTarget(Mode::Immediate).value + indexY);
 			break;
 		}
 	}

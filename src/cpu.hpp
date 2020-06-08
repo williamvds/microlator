@@ -43,10 +43,11 @@ public:
 	enum class Type {
 		Accumulator,
 		Memory,
+		Value,
 	};
 
-	constexpr ValueStore(CPU& cpu, uint16_t address, Type type = Type::Memory)
-	: address{address},
+	constexpr ValueStore(CPU& cpu, uint16_t value, Type type = Type::Memory)
+	: value{value},
 	  type{type},
 	  cpu{cpu}
 	{
@@ -57,10 +58,10 @@ public:
 	{
 	};
 
-	constexpr auto read() -> uint8_t;
+	constexpr auto read() -> uint16_t;
 	constexpr void write(uint8_t);
 
-	const uint16_t address;
+	const uint16_t value;
 
 private:
 	const Type type;
