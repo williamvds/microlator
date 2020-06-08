@@ -12,7 +12,7 @@ namespace Catch {
 	struct StringMaker<std::bitset<8>> {
 		static auto convert(const std::bitset<8>& value) -> std::string {
 			constexpr auto flags = std::to_array<char>({
-				'C', 'Z', 'I', 'D', 'B', '-', 'O', 'N'
+				'C', 'Z', 'I', 'D', 'B', '-', 'V', 'N'
 			});
 
 			std::ostringstream os;
