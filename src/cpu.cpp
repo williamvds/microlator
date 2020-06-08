@@ -468,7 +468,7 @@ void CPU::oPHA(ValueStore) {
 }
 
 void CPU::oPHP(ValueStore) {
-	push(static_cast<uint8_t>(flags.to_ulong()));
+	push(static_cast<uint8_t>(flags.to_ulong() | (1U << Break)));
 }
 
 void CPU::oPLA(ValueStore) {
