@@ -306,6 +306,7 @@ void CPU::oBEQ(ValueStore target) {
 
 void CPU::oBIT(ValueStore address) {
 	const auto input = address.read();
+	flags.set(Overflow, getBit(6, input));
 	calculateFlag(input, Zero, Negative);
 }
 
