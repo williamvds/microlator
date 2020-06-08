@@ -25,7 +25,7 @@ namespace Catch {
 			return {os.str()};
 		}
 	};
-}
+} // namespace Catch
 
 TEST_CASE("CPU can execute", "[cpu]") {
 	auto cpu = CPU();
