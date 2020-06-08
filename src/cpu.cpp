@@ -20,12 +20,12 @@ constexpr auto isNegative(uint8_t value) -> bool {
 	return getBit(7, value);
 }
 
-constexpr auto wrapToByte(size_t value) -> bool {
-	// Subtract one if wrapping to remove carry
+constexpr auto wrapToByte(size_t value) -> uint8_t {
 	if (value <= u8Max)
-		return value;
-	else
-		return (value % u8Max) - 1;
+		return static_cast<uint8_t>(value);
+
+	// Subtract one if wrapping to remove carry
+	return static_cast<uint8_t>((value % u8Max) - 1);
 }
 
 constexpr void ValueStore::write(uint8_t newValue) {
