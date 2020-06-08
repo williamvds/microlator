@@ -7,8 +7,6 @@
 #include <optional>
 #include <functional>
 
-constexpr auto MEMORY_SIZE_BYTES = 65536;
-
 class CPU;
 
 enum Flags {
@@ -91,7 +89,8 @@ public:
 	uint16_t pc{initialProgramCounter};
 	std::bitset<8> flags{initialFlags};
 
-	using Memory = std::array<uint8_t, MEMORY_SIZE_BYTES>;
+	constexpr static auto memorySize            = 65536U;
+	using Memory = std::array<uint8_t, memorySize>;
 	Memory memory{};
 
 private:
