@@ -12,7 +12,7 @@ constexpr auto setBit(uint8_t index, uint8_t value, bool set) -> uint8_t {
 }
 
 constexpr auto getBit(uint8_t index, uint8_t value) -> bool {
-	return (value >> index) & 1U;
+	return static_cast<bool>((value >> index) & 1U);
 }
 
 constexpr auto isNegative(uint8_t value) -> bool {
