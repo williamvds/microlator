@@ -473,6 +473,7 @@ void CPU::oPHP(ValueStore) {
 
 void CPU::oPLA(ValueStore) {
 	accumulator = pop();
+	calculateFlag(accumulator, Zero, Negative);
 }
 
 void CPU::oPLP(ValueStore) {
