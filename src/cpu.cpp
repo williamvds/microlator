@@ -229,7 +229,7 @@ constexpr auto CPU::pop() -> uint8_t {
 }
 
 constexpr auto CPU::pop2() -> uint16_t {
-	return (pop() << 8) + pop();
+	return pop() + (pop() << 8U);
 }
 
 void CPU::calculateFlag(uint16_t value, Flags flag) {
