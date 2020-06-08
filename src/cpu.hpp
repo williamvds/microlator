@@ -53,7 +53,7 @@ public:
 	{
 	};
 
-	constexpr ValueStore(CPU& cpu)
+	constexpr explicit ValueStore(CPU& cpu)
 	: ValueStore{cpu, 0}
 	{
 	};

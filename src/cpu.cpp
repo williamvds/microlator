@@ -106,7 +106,7 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 
 		// Use value of accumulator, e.g. LSL A
 		case Mode::Accumulator:
-			return {self};
+			return ValueStore(self);
 
 		// Use value at next address e.g. LDX #$00
 		case Mode::Immediate: {
