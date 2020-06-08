@@ -4,15 +4,15 @@
 
 #include "cpu.hpp"
 
-constexpr auto u8Max = 0xff;
-constexpr auto u16Upper = 0xff00;
+constexpr auto u8Max = 0xffU;
+constexpr auto u16Upper = 0xff00U;
 
 constexpr auto setBit(uint8_t index, uint8_t value, bool set) -> uint8_t {
-	return value | (static_cast<int>(set) << index);
+	return value | (static_cast<uint16_t>(set) << index);
 }
 
 constexpr auto getBit(uint8_t index, uint8_t value) -> bool {
-	return (value >> index) & 1;
+	return (value >> index) & 1U;
 }
 
 constexpr auto isNegative(uint8_t value) -> bool {
@@ -117,7 +117,7 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		case Mode::Absolute: {
 			const uint8_t low  = read(pc++),
 						  high = read(pc++);
-			uint16_t value = (high << 8) + low;
+			uint16_t value = (high << 8U) + low;
 			return {self, value};
 			break;
 		}
@@ -146,7 +146,7 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 
 			const auto low  = read(lowTarget),
 					   high = read(highTarget);
-			targetAddress = (high << 8) + low;
+			targetAddress = (high << 8U) + low;
 			break;
 		}
 
@@ -166,7 +166,7 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		// from the program counter (after the instruction has been decoded)
 		case Mode::Relative: {
 			const uint8_t value     = getTarget(Mode::Immediate).value,
-						  lowerBits = value ^ 0b1000'0000;
+						  lowerBits = value ^ 0b1000'0000U;
 			// Two's complement: when the high bit is set the number is
 			// negative, in which case flip the lower bits and add one.
 			// If positive the original value is correct
@@ -220,7 +220,7 @@ constexpr void CPU::push(uint8_t value) {
 }
 
 constexpr void CPU::push2(uint16_t value) {
-	push(static_cast<uint8_t>(value >> 8));
+	push(static_cast<uint8_t>(value >> 8U));
 	push(static_cast<uint8_t>(value & u8Max));
 }
 
@@ -284,7 +284,7 @@ void CPU::oASL(ValueStore address) {
 	const auto input = address.read();
 	flags.set(Carry, getBit(7, input));
 
-	const auto result = input << 1;
+	const auto result = input << 1U;
 	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
@@ -447,7 +447,7 @@ void CPU::oLDY(ValueStore address) {
 
 void CPU::oLSR(ValueStore address) {
 	const auto input = address.read();
-	const auto result = input >> 1;
+	const auto result = input >> 1U;
 	calculateFlag(result, Zero, Negative);
 	flags.set(Carry, getBit(0, input));
 	address.write(result);
@@ -481,7 +481,7 @@ void CPU::oPLP(ValueStore) {
 
 void CPU::oROL(ValueStore address) {
 	const auto input = address.read();
-	const auto result = setBit(0, input << 1, flags.test(Carry));
+	const auto result = setBit(0, input << 1U, flags.test(Carry));
 
 	flags.set(Carry, getBit(7, input));
 	calculateFlag(result, Zero, Negative);
@@ -490,7 +490,7 @@ void CPU::oROL(ValueStore address) {
 
 void CPU::oROR(ValueStore address) {
 	const auto input = address.read();
-	const auto result = setBit(7, input >> 1, flags.test(Carry));
+	const auto result = setBit(7, input >> 1U, flags.test(Carry));
 
 	flags.set(Carry, getBit(0, input));
 	calculateFlag(result, Zero, Negative);
