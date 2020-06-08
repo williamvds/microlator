@@ -277,17 +277,17 @@ void CPU::oASL(ValueStore address) {
 
 void CPU::oBCC(ValueStore target) {
 	if (!flags.test(Carry))
-		branch(target.read());
+		branch(target.value);
 }
 
 void CPU::oBCS(ValueStore target) {
 	if (flags.test(Carry))
-		branch(target.read());
+		branch(target.value);
 }
 
 void CPU::oBEQ(ValueStore target) {
 	if (flags.test(Zero))
-		branch(target.read());
+		branch(target.value);
 }
 
 void CPU::oBIT(ValueStore address) {
@@ -297,17 +297,17 @@ void CPU::oBIT(ValueStore address) {
 
 void CPU::oBMI(ValueStore target) {
 	if (flags.test(Negative))
-		branch(target.read());
+		branch(target.value);
 }
 
 void CPU::oBNE(ValueStore target) {
 	if (!flags.test(Zero))
-		branch(target.read());
+		branch(target.value);
 }
 
 void CPU::oBPL(ValueStore target) {
 	if (!flags.test(Negative))
-		branch(target.read());
+		branch(target.value);
 }
 
 void CPU::oBRK(ValueStore) {
@@ -317,14 +317,14 @@ void CPU::oBRK(ValueStore) {
 	push(static_cast<uint8_t>(flags.to_ulong()));
 }
 
-void CPU::oBVC(ValueStore address) {
+void CPU::oBVC(ValueStore target) {
 	if (!flags.test(Overflow))
-		branch(address.read());
+		branch(target.value);
 }
 
-void CPU::oBVS(ValueStore address) {
+void CPU::oBVS(ValueStore target) {
 	if (flags.test(Overflow))
-		branch(address.read());
+		branch(target.value);
 }
 
 void CPU::oCLC(ValueStore) {
@@ -403,13 +403,13 @@ void CPU::oINY(ValueStore) {
 	indexY = result;
 }
 
-void CPU::oJMP(ValueStore address) {
-	pc = address.read();
+void CPU::oJMP(ValueStore target) {
+	pc = target.value;
 }
 
-void CPU::oJSR(ValueStore address) {
+void CPU::oJSR(ValueStore target) {
 	push2(pc);
-	pc = address.read();
+	pc = target.value;
 }
 
 void CPU::oLDA(ValueStore address) {
