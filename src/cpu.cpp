@@ -232,14 +232,29 @@ constexpr auto CPU::pop2() -> uint16_t {
 	return (pop() << 8) + pop();
 }
 
-void CPU::setZeroNegative(uint8_t value) {
-	flags.set(Zero,     value == 0);
-	flags.set(Negative, isNegative(value));
+void CPU::calculateFlag(uint16_t value, Flags flag) {
+	bool result = false;
+
+	switch(flag) {
+		case Carry:
+			result = (value == u8Max);  break;
+		case Zero:
+			result = (value == 0);      break;
+		case Negative:
+			result = isNegative(value); break;
+		case Overflow:
+			result = (value >  u8Max);  break;
+		default:
+			throw std::logic_error{"Can't calculate this flag from a value"};
+	}
+
+	flags.set(flag, result);
 }
 
-void CPU::setOverflowCarry(size_t value) {
-	flags.set(Carry,    value == u8Max);
-	flags.set(Overflow, value >  u8Max);
+template<class T, class... Args>
+void CPU::calculateFlag(uint16_t value, T flag, Args... flags) {
+	calculateFlag(value, flag);
+	calculateFlag(value, flags...);
 }
 
 void CPU::compare(size_t a, size_t b) {
@@ -251,8 +266,7 @@ void CPU::compare(size_t a, size_t b) {
 void CPU::addWithCarry(uint8_t input) {
 	// TODO: implement decimal mode
 	const uint16_t result = accumulator + input + (flags.test(Carry) ? 1 : 0);
-	setOverflowCarry(result);
-	setZeroNegative(result);
+	calculateFlag(result, Carry, Zero, Overflow, Negative);
 	accumulator = wrapToByte(result);
 }
 
@@ -263,7 +277,7 @@ void CPU::oADC(ValueStore address) {
 void CPU::oAND(ValueStore address) {
 	const auto input = address.read();
 	accumulator &= input;
-	setZeroNegative(accumulator);
+	calculateFlag(accumulator, Zero, Negative);
 }
 
 void CPU::oASL(ValueStore address) {
@@ -271,7 +285,7 @@ void CPU::oASL(ValueStore address) {
 	flags.set(Carry, getBit(7, input));
 
 	const auto result = input << 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
@@ -292,7 +306,7 @@ void CPU::oBEQ(ValueStore target) {
 
 void CPU::oBIT(ValueStore address) {
 	const auto input = address.read();
-	setZeroNegative(input);
+	calculateFlag(input, Zero, Negative);
 }
 
 void CPU::oBMI(ValueStore target) {
@@ -361,45 +375,45 @@ void CPU::oCPY(ValueStore address) {
 void CPU::oDEC(ValueStore address) {
 	const auto input = address.read();
 	const auto result = input - 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
 void CPU::oDEX(ValueStore) {
 	const auto result = indexX - 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	indexX = result;
 }
 
 void CPU::oDEY(ValueStore) {
 	const auto result = indexY - 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	indexY = result;
 }
 
 void CPU::oEOR(ValueStore address) {
 	const auto input = address.read();
 	const auto result = accumulator ^ input;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
 void CPU::oINC(ValueStore address) {
 	const auto input = address.read();
 	const auto result = input + 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
 void CPU::oINX(ValueStore) {
 	const auto result = indexX - 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	indexX = result;
 }
 
 void CPU::oINY(ValueStore) {
 	const auto result = indexY - 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	indexY = result;
 }
 
@@ -415,25 +429,25 @@ void CPU::oJSR(ValueStore target) {
 void CPU::oLDA(ValueStore address) {
 	const auto input = address.read();
 	accumulator = input;
-	setZeroNegative(input);
+	calculateFlag(input, Zero, Negative);
 }
 
 void CPU::oLDX(ValueStore address) {
 	const auto input = address.read();
 	indexX = input;
-	setZeroNegative(input);
+	calculateFlag(input, Zero, Negative);
 }
 
 void CPU::oLDY(ValueStore address) {
 	const auto input = address.read();
 	indexY = input;
-	setZeroNegative(input);
+	calculateFlag(input, Zero, Negative);
 }
 
 void CPU::oLSR(ValueStore address) {
 	const auto input = address.read();
 	const auto result = input >> 1;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	flags.set(Carry, getBit(0, input));
 	address.write(result);
 }
@@ -444,7 +458,7 @@ void CPU::oNOP(ValueStore) {
 void CPU::oORA(ValueStore address) {
 	const auto input = address.read();
 	const auto result = accumulator | input;
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	accumulator = result;
 }
 
@@ -469,7 +483,7 @@ void CPU::oROL(ValueStore address) {
 	const auto result = setBit(0, input << 1, flags.test(Carry));
 
 	flags.set(Carry, getBit(7, input));
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
@@ -478,7 +492,7 @@ void CPU::oROR(ValueStore address) {
 	const auto result = setBit(7, input >> 1, flags.test(Carry));
 
 	flags.set(Carry, getBit(0, input));
-	setZeroNegative(result);
+	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
@@ -521,22 +535,22 @@ void CPU::oSTY(ValueStore address) {
 
 void CPU::oTAX(ValueStore) {
 	indexX = accumulator;
-	setZeroNegative(indexX);
+	calculateFlag(indexX, Zero, Negative);
 }
 
 void CPU::oTAY(ValueStore) {
 	indexY = accumulator;
-	setZeroNegative(indexY);
+	calculateFlag(indexY, Zero, Negative);
 }
 
 void CPU::oTSX(ValueStore) {
 	indexX = stack;
-	setZeroNegative(indexX);
+	calculateFlag(indexX, Zero, Negative);
 }
 
 void CPU::oTXA(ValueStore) {
 	accumulator = indexX;
-	setZeroNegative(accumulator);
+	calculateFlag(accumulator, Zero, Negative);
 }
 
 void CPU::oTXS(ValueStore) {
@@ -545,7 +559,7 @@ void CPU::oTXS(ValueStore) {
 
 void CPU::oTYA(ValueStore) {
 	accumulator = indexY;
-	setZeroNegative(accumulator);
+	calculateFlag(accumulator, Zero, Negative);
 }
 
 constexpr auto CPU::getInstructions() -> Instructions {

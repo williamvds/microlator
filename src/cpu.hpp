@@ -118,8 +118,9 @@ private:
 	constexpr auto pop2() -> uint16_t;
 	constexpr void branch(uint16_t);
 
-	void setZeroNegative(uint8_t);
-	void setOverflowCarry(size_t);
+	template<class T, class... Args>
+	void calculateFlag(uint16_t value, T flag, Args... flags);
+	void calculateFlag(uint16_t value, Flags flag);
 	void compare(size_t a, size_t b);
 	void addWithCarry(uint8_t value);
 
