@@ -17,8 +17,9 @@ namespace Catch {
 
 			std::ostringstream os;
 			os << '[';
-			for (size_t i = flags.size() - 1; i != 0; i--) {
-				os << (value[i] ? flags[i] : ' ');
+			for (size_t i = 0; i <= flags.size(); i++) {
+				size_t bit = flags.size() - i;
+				os << (value[bit] ? flags.at(bit) : ' ');
 			}
 			os << ']';
 
