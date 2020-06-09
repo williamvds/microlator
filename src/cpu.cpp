@@ -44,7 +44,7 @@ constexpr void ValueStore::write(uint8_t newValue) {
 	}
 }
 
-constexpr auto ValueStore::read() -> uint16_t {
+constexpr auto ValueStore::read() const -> uint16_t {
 	switch(type) {
 		case Type::Accumulator:
 			return cpu.accumulator;
@@ -207,7 +207,7 @@ constexpr void CPU::branch(uint16_t address) {
 	pc = address;
 }
 
-constexpr auto CPU::read(size_t address) -> uint8_t {
+constexpr auto CPU::read(size_t address) const -> uint8_t {
 	return memory[address];
 }
 

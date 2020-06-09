@@ -56,7 +56,8 @@ public:
 	{
 	};
 
-	constexpr auto read() -> uint16_t;
+	[[nodiscard]]
+	constexpr auto read() const -> uint16_t;
 	constexpr void write(uint8_t);
 
 	const uint16_t value;
@@ -107,7 +108,8 @@ private:
 
 	// Instruction helpers
 	constexpr auto getTarget(AddressMode mode) -> ValueStore;
-	constexpr auto read(size_t address) -> uint8_t;
+	[[nodiscard]]
+	constexpr auto read(size_t address) const -> uint8_t;
 	constexpr void write(size_t address, uint8_t value);
 	constexpr void push(uint8_t);
 	constexpr void push(uint16_t) = delete;
