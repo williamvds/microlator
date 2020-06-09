@@ -1,1 +1,1 @@
-Checks: '*,-misc-unused-parameters,-readability-named-parameter,-*-braces-around-statements,-fuchsia-*,-hicpp-vararg'
+Checks: '*,-misc-unused-parameters,-readability-isolate-declaration,-readability-named-parameter,-*-braces-around-statements,-fuchsia-*,-google-readability-todo,-llvm-header-guard,-hicpp-vararg'
