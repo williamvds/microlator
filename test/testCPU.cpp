@@ -1,4 +1,3 @@
-#include <bitset>
 #include <iostream>
 #include <sstream>
 
@@ -9,8 +8,8 @@
 
 namespace Catch {
 	template<>
-	struct StringMaker<std::bitset<8>> {
-		static auto convert(const std::bitset<8>& value) -> std::string {
+	struct StringMaker<CPU::Flags> {
+		static auto convert(const CPU::Flags& value) -> std::string {
 			constexpr auto flags = std::to_array<char>({
 				'C', 'Z', 'I', 'D', 'B', '-', 'V', 'N'
 			});

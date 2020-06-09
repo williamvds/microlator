@@ -9,7 +9,7 @@
 
 class CPU;
 
-enum Flags {
+enum FlagIndex {
 	Carry,
 	Zero,
 	InterruptOff,
@@ -88,7 +88,9 @@ public:
 	uint8_t  indexY{0};
 	uint8_t  stack{initialStackPointer};
 	uint16_t pc{initialProgramCounter};
-	std::bitset<8> flags{initialFlags};
+
+	using Flags = std::bitset<8>;
+	Flags flags{initialFlags};
 
 	constexpr static auto memorySize            = 65536U;
 	using Memory = std::array<uint8_t, memorySize>;
@@ -121,7 +123,7 @@ private:
 
 	template<class T, class... Args>
 	void calculateFlag(uint16_t value, T flag, Args... flags);
-	void calculateFlag(uint16_t value, Flags flag);
+	void calculateFlag(uint16_t value, FlagIndex flag);
 	void compare(size_t a, size_t b);
 	void addWithCarry(uint8_t value);
 

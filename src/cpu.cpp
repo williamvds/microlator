@@ -232,7 +232,7 @@ constexpr auto CPU::pop2() -> uint16_t {
 	return pop() + (pop() << 8U);
 }
 
-void CPU::calculateFlag(uint16_t value, Flags flag) {
+void CPU::calculateFlag(uint16_t value, FlagIndex flag) {
 	bool result = false;
 
 	switch(flag) {
