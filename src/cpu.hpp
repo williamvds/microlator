@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstddef>
-#include <span>
 #include <array>
 #include <bitset>
-#include <optional>
+#include <cstddef>
 #include <functional>
+#include <optional>
+#include <span>
 
 class CPU;
 
