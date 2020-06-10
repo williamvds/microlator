@@ -119,6 +119,7 @@ private:
 	constexpr void push2(uint8_t) = delete;
 	constexpr auto pop() -> uint8_t;
 	constexpr auto pop2() -> uint16_t;
+	constexpr void popFlags();
 	constexpr void branch(uint16_t);
 
 	template<class T, class... Args>

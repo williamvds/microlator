@@ -232,6 +232,13 @@ constexpr auto CPU::pop2() -> uint16_t {
 	return pop() + (pop() << 8U);
 }
 
+constexpr void CPU::popFlags() {
+	auto value = pop();
+	value |=  (1U << Unused);
+	value &= ~(1U << Break);
+	flags = value;
+}
+
 void CPU::calculateFlag(uint16_t value, FlagIndex flag) {
 	bool result = false;
 
@@ -477,7 +484,7 @@ void CPU::oPLA(ValueStore) {
 }
 
 void CPU::oPLP(ValueStore) {
-	flags = pop();
+	popFlags();
 }
 
 void CPU::oROL(ValueStore address) {
@@ -499,7 +506,7 @@ void CPU::oROR(ValueStore address) {
 }
 
 void CPU::oRTI(ValueStore) {
-	flags = pop();
+	popFlags();
 	pc    = pop2();
 }
 
