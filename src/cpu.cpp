@@ -259,7 +259,7 @@ void CPU::calculateFlag(uint16_t value, T flag, Args... flags) {
 
 void CPU::compare(size_t a, size_t b) {
 	flags.set(Zero,     a == b);
-	flags.set(Carry,    a >  b);
+	flags.set(Carry,    a >= b);
 	flags.set(Negative, a <  b);
 }
 
