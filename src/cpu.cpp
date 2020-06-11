@@ -313,8 +313,9 @@ void CPU::oBEQ(ValueStore target) {
 
 void CPU::oBIT(ValueStore address) {
 	const auto input = address.read();
+	flags.set(Zero, !static_cast<bool>(input & accumulator));
 	flags.set(Overflow, getBit(6, input));
-	calculateFlag(input, Zero, Negative);
+	flags.set(Negative, isNegative(input));
 }
 
 void CPU::oBMI(ValueStore target) {
