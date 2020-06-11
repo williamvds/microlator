@@ -402,9 +402,8 @@ void CPU::oDEY(ValueStore) {
 
 void CPU::oEOR(ValueStore address) {
 	const auto input = address.read();
-	const auto result = accumulator ^ input;
-	calculateFlag(result, Zero, Negative);
-	address.write(result);
+	accumulator = accumulator ^ input;
+	calculateFlag(accumulator, Zero, Negative);
 }
 
 void CPU::oINC(ValueStore address) {
