@@ -20,6 +20,10 @@ constexpr auto isNegative(uint8_t value) -> bool {
 	return getBit(7, value);
 }
 
+constexpr auto sign(uint8_t value) -> short {
+	return isNegative(value) ? -1 : 1;
+}
+
 constexpr auto wrapToByte(size_t value) -> uint8_t {
 	if (value <= u8Max)
 		return static_cast<uint8_t>(value);
@@ -272,9 +276,16 @@ void CPU::compare(size_t a, size_t b) {
 
 void CPU::addWithCarry(uint8_t input) {
 	// TODO: implement decimal mode
-	const uint16_t result = accumulator + input + (flags.test(Carry) ? 1 : 0);
-	calculateFlag(result, Carry, Zero, Overflow, Negative);
-	accumulator = wrapToByte(result);
+	const uint8_t result = accumulator + input + (flags.test(Carry) ? 1 : 0);
+	calculateFlag(result, Zero, Negative);
+
+	const auto resultSign = sign(result);
+	flags.set(Overflow,
+		(sign(accumulator) != resultSign)
+	 && (sign(input)       != resultSign));
+	flags.set(Carry, result < accumulator);
+
+	accumulator = result;
 }
 
 void CPU::oADC(ValueStore address) {
