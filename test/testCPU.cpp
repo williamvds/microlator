@@ -39,7 +39,11 @@ TEST_CASE("CPU passes nestest", "[cpu]") {
 	cpu.loadProgram(nestestProgram, 0x8000);
 	cpu.loadProgram(nestestProgram, 0xC000);
 
-	for (auto&& state : nestestStates) {
+	const auto *prev = nestestStates.begin();
+	for (auto it = nestestStates.begin(); it != nestestStates.end(); ++it) {
+		const auto state = *it;
+
+		INFO("Last instruction: " << prev->dis);
 		INFO("PC: " << std::hex << state.pc);
 
 		REQUIRE(static_cast<unsigned>(cpu.pc) == static_cast<unsigned>(state.pc));
@@ -50,8 +54,9 @@ TEST_CASE("CPU passes nestest", "[cpu]") {
 		REQUIRE(static_cast<unsigned>(cpu.stack)
 			 == static_cast<unsigned>(state.sp));
 
-		UNSCOPED_INFO("Dissassembly: " << state.dis);
 		if (!cpu.step())
 			break;
+
+		prev = it;
 	}
 }
