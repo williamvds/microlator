@@ -243,7 +243,7 @@ constexpr void CPU::popFlags() {
 	flags = value;
 }
 
-void CPU::calculateFlag(uint16_t value, FlagIndex flag) {
+void CPU::calculateFlag(uint8_t value, FlagIndex flag) {
 	bool result = false;
 
 	switch(flag) {
@@ -253,8 +253,6 @@ void CPU::calculateFlag(uint16_t value, FlagIndex flag) {
 			result = (value == 0);      break;
 		case Negative:
 			result = isNegative(value); break;
-		case Overflow:
-			result = (value >  u8Max);  break;
 		default:
 			throw std::logic_error{"Can't calculate this flag from a value"};
 	}
@@ -263,7 +261,7 @@ void CPU::calculateFlag(uint16_t value, FlagIndex flag) {
 }
 
 template<class T, class... Args>
-void CPU::calculateFlag(uint16_t value, T flag, Args... flags) {
+void CPU::calculateFlag(uint8_t value, T flag, Args... flags) {
 	calculateFlag(value, flag);
 	calculateFlag(value, flags...);
 }

@@ -123,8 +123,8 @@ private:
 	constexpr void branch(uint16_t);
 
 	template<class T, class... Args>
-	void calculateFlag(uint16_t value, T flag, Args... flags);
-	void calculateFlag(uint16_t value, FlagIndex flag);
+	void calculateFlag(uint8_t value, T flag, Args... flags);
+	void calculateFlag(uint8_t value, FlagIndex flag);
 	void compare(size_t a, size_t b);
 	void addWithCarry(uint8_t value);
 
