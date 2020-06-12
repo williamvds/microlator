@@ -28,7 +28,5 @@ PRIVATE
 	cxx_std_20
 )
 
-add_test(
-	NAME    microlator_test
-	COMMAND microlator_test
-)
+include(Catch)
+catch_discover_tests(microlator_test)
