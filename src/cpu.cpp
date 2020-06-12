@@ -425,13 +425,13 @@ void CPU::oINC(ValueStore address) {
 }
 
 void CPU::oINX(ValueStore) {
-	const auto result = indexX - 1;
+	const auto result = indexX + 1;
 	calculateFlag(result, Zero, Negative);
 	indexX = result;
 }
 
 void CPU::oINY(ValueStore) {
-	const auto result = indexY - 1;
+	const auto result = indexY + 1;
 	calculateFlag(result, Zero, Negative);
 	indexY = result;
 }
