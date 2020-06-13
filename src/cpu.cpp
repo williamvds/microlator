@@ -439,7 +439,7 @@ void CPU::oJMP(ValueStore target) {
 }
 
 void CPU::oJSR(ValueStore target) {
-	push2(pc);
+	push2(static_cast<uint16_t>(pc - 1));
 	pc = target.value;
 }
 
@@ -520,7 +520,7 @@ void CPU::oRTI(ValueStore) {
 }
 
 void CPU::oRTS(ValueStore) {
-	pc = pop2();
+	pc = pop2() + 1;
 }
 
 void CPU::oSBC(ValueStore address) {
