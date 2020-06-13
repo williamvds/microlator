@@ -52,7 +52,9 @@ public:
 	};
 
 	constexpr explicit ValueStore(CPU& cpu)
-	: ValueStore{cpu, 0}
+	: value{0},
+	  type{Type::Accumulator},
+	  cpu{cpu}
 	{
 	};
 
