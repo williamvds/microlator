@@ -98,6 +98,9 @@ public:
 	using Memory = std::array<uint8_t, memorySize>;
 	Memory memory{};
 
+	constexpr void push(uint16_t) = delete;
+	constexpr void push2(uint8_t) = delete;
+
 private:
 	constexpr static auto stackTop              = 0x100;
 	constexpr static auto initialStackPointer   = 0xfd;
@@ -119,9 +122,7 @@ private:
 		-> uint16_t;
 	constexpr void write(size_t address, uint8_t value);
 	constexpr void push(uint8_t);
-	constexpr void push(uint16_t) = delete;
 	constexpr void push2(uint16_t);
-	constexpr void push2(uint8_t) = delete;
 	constexpr auto pop() -> uint8_t;
 	constexpr auto pop2() -> uint16_t;
 	constexpr void popFlags();
