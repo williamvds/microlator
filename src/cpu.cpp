@@ -116,10 +116,9 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 
 		// Use 16-bit value embedded in instruction, e.g. JMP $1234
 		case Mode::Absolute: {
-			const uint8_t low  = read(pc++),
-						  high = read(pc++);
-			uint16_t value = (high << 8U) + low;
-			return {self, value};
+			const auto address = read2(pc);
+			pc += 2;
+			return {self, address};
 			break;
 		}
 
