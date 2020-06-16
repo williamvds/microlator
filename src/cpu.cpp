@@ -5,6 +5,7 @@
 #include "cpu.hpp"
 
 constexpr auto u8Max = 0xffU;
+constexpr auto u8Modulo = 0x100U;
 constexpr auto u16Upper = 0xff00U;
 
 constexpr auto setBit(uint8_t index, uint8_t value, bool set) -> uint8_t {
@@ -25,11 +26,7 @@ constexpr auto sign(uint8_t value) -> short {
 }
 
 constexpr auto wrapToByte(size_t value) -> uint8_t {
-	if (value <= u8Max)
-		return static_cast<uint8_t>(value);
-
-	// Subtract one if wrapping to remove carry
-	return static_cast<uint8_t>((value % u8Max) - 1);
+	return static_cast<uint8_t>(value % u8Modulo);
 }
 
 constexpr void ValueStore::write(uint8_t newValue) {
