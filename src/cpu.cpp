@@ -139,8 +139,8 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		case Mode::Indirect: {
 			// indirectJumpBug: a hardware bug results in the increment
 			// actually flipping the lower byte from 0xff to 0x00
-			const uint8_t lowTarget  = read(getTarget(Mode::Absolute).value),
-						  highTarget = indirectJumpBug && (lowTarget & u8Max)
+			const uint16_t lowTarget  = getTarget(Mode::Absolute).value,
+						   highTarget = indirectJumpBug && (lowTarget & u8Max)
 				? (lowTarget & u16Upper)
 				: lowTarget + 1;
 
