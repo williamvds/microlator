@@ -82,7 +82,7 @@ public:
 	// [...] used but never defined" if it is declared constexpr
 	void loadProgram(std::span<const uint8_t> program, uint16_t offset);
 	void loadProgram(std::span<const uint8_t> program);
-	bool step();
+	auto step() -> bool;
 
 	// Registers
 	uint8_t  accumulator{0};
