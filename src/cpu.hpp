@@ -114,6 +114,9 @@ private:
 	constexpr auto getTarget(AddressMode mode) -> ValueStore;
 	[[nodiscard]]
 	constexpr auto read(size_t address) const -> uint8_t;
+	[[nodiscard]]
+	constexpr auto read2(size_t address, bool wrapToPage = false) const
+		-> uint16_t;
 	constexpr void write(size_t address, uint8_t value);
 	constexpr void push(uint8_t);
 	constexpr void push(uint16_t) = delete;

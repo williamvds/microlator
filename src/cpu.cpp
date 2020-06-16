@@ -150,15 +150,19 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 			break;
 		}
 
-		// Like Indirect, but add value of register X, e.g. JMP ($1234,X)
+		// Like Zeropage, but the X index to the indirect address
+		// e.g. LDA ($12,X)
 		case Mode::IndirectX: {
-			targetAddress = getTarget(Mode::Indirect).value + indexX;
+			const auto indirectAddr = getTarget(Mode::Zeropage).value + indexX;
+			targetAddress = read2(indirectAddr, true);
 			break;
 		}
 
-		// Like Indirect, but add value of register Y, e.g. JMP ($1234,Y)
+		// Like Indirect, but the Y index to the final address
+		// e.g. LDA ($12),Y
 		case Mode::IndirectY: {
-			targetAddress = getTarget(Mode::Indirect).value + indexY;
+			const auto indirectAddr = getTarget(Mode::Zeropage).value;
+			targetAddress = read2(indirectAddr, true) + indexY;
 			break;
 		}
 
@@ -209,6 +213,15 @@ constexpr void CPU::branch(uint16_t address) {
 
 constexpr auto CPU::read(size_t address) const -> uint8_t {
 	return memory[address];
+}
+
+constexpr auto CPU::read2(size_t address, bool wrapToPage) const -> uint16_t {
+	if (wrapToPage)
+		address = wrapToByte(address);
+
+	const auto highAddress = address + 1;
+	return memory[address]
+		+ (memory[wrapToPage ? wrapToByte(highAddress) : highAddress] << 8U);
 }
 
 constexpr void CPU::write(size_t address, uint8_t value) {
