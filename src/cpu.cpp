@@ -33,7 +33,7 @@ constexpr auto isNegative(uint8_t value) -> bool {
 	return getBit(7, value);
 }
 
-constexpr auto sign(uint8_t value) -> short {
+constexpr auto sign(uint8_t value) -> int8_t {
 	return isNegative(value) ? -1 : 1;
 }
 
