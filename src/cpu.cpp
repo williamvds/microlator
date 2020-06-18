@@ -8,12 +8,24 @@ constexpr auto u8Max = 0xffU;
 constexpr auto u8Modulo = 0x100U;
 constexpr auto u16Upper = 0xff00U;
 
+constexpr auto toU8(auto value) {
+	return static_cast<uint8_t>(value);
+}
+
+constexpr auto toU16(auto value) {
+	return static_cast<uint16_t>(value);
+}
+
+constexpr auto toBool(auto value) {
+	return static_cast<bool>(value);
+}
+
 constexpr auto setBit(uint8_t index, uint8_t value, bool set) -> uint8_t {
-	return value | (static_cast<uint16_t>(set) << index);
+	return toU8(value | toU8(toU8(set) << index));
 }
 
 constexpr auto getBit(uint8_t index, uint8_t value) -> bool {
-	return static_cast<bool>((value >> index) & 1U);
+	return toBool(toU8(value >> index) & 1U);
 }
 
 constexpr auto isNegative(uint8_t value) -> bool {
@@ -26,7 +38,7 @@ constexpr auto sign(uint8_t value) -> short {
 }
 
 constexpr auto wrapToByte(size_t value) -> uint8_t {
-	return static_cast<uint8_t>(value % u8Modulo);
+	return toU8(value % u8Modulo);
 }
 
 constexpr void ValueStore::write(uint8_t newValue) {
@@ -233,8 +245,8 @@ constexpr void CPU::push(uint8_t value) {
 }
 
 constexpr void CPU::push2(uint16_t value) {
-	push(static_cast<uint8_t>(value >> 8U));
-	push(static_cast<uint8_t>(value & u8Max));
+	push(toU8(value >> 8U));
+	push(toU8(value & u8Max));
 }
 
 constexpr auto CPU::pop() -> uint8_t {
@@ -331,7 +343,7 @@ void CPU::oBEQ(ValueStore target) {
 
 void CPU::oBIT(ValueStore address) {
 	const auto input = address.read();
-	flags.set(Zero, !static_cast<bool>(input & accumulator));
+	flags.set(Zero, !toBool(input & accumulator));
 	flags.set(Overflow, getBit(6, input));
 	flags.set(Negative, isNegative(input));
 }
@@ -355,7 +367,7 @@ void CPU::oBRK(ValueStore) {
 	flags.set(InterruptOff, true);
 	
 	push2(pc);
-	push(static_cast<uint8_t>(flags.to_ulong()));
+	push(toU8(flags.to_ulong()));
 }
 
 void CPU::oBVC(ValueStore target) {
@@ -448,7 +460,7 @@ void CPU::oJMP(ValueStore target) {
 }
 
 void CPU::oJSR(ValueStore target) {
-	push2(static_cast<uint16_t>(pc - 1));
+	push2(toU16(pc - 1));
 	pc = target.value;
 }
 
@@ -493,7 +505,7 @@ void CPU::oPHA(ValueStore) {
 }
 
 void CPU::oPHP(ValueStore) {
-	push(static_cast<uint8_t>(flags.to_ulong() | (1U << Break)));
+	push(toU8(flags.to_ulong() | (1U << Break)));
 }
 
 void CPU::oPLA(ValueStore) {
