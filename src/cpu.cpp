@@ -108,18 +108,16 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 	using Mode = AddressMode;
 	CPU& self = *this;
 
-	uint16_t targetAddress = 0;
-
 	switch (mode) {
 		// Instruction makes target implicit, e.g. CLC
 		case Mode::Implicit: {
-			targetAddress = 0;
-			break;
+			return {self, 0, ValueStore::Type::Implicit};
 		}
 
 		// Use value of accumulator, e.g. LSL A
-		case Mode::Accumulator:
+		case Mode::Accumulator: {
 			return ValueStore(self);
+		}
 
 		// Use value at next address e.g. LDX #$00
 		case Mode::Immediate: {
@@ -131,19 +129,16 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 			const auto address = read2(pc);
 			pc += 2;
 			return {self, address};
-			break;
 		}
 
 		// Like Absolute, but add value of register X, e.g. JMP $1234,X
 		case Mode::AbsoluteX: {
-			targetAddress = getTarget(Mode::Absolute).value + indexX;
-			break;
+			return {self, toU16(getTarget(Mode::Absolute).value + indexX)};
 		}
 
 		// Like Absolute, but add value of register Y, e.g. JMP $1234,Y
 		case Mode::AbsoluteY: {
-			targetAddress = getTarget(Mode::Absolute).value + indexY;
-			break;
+			return {self, toU16(getTarget(Mode::Absolute).value + indexY)};
 		}
 
 		// Use the value at the address embedded in the instruction
@@ -156,26 +151,21 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 				? (lowTarget & u16Upper)
 				: lowTarget + 1;
 
-			const auto low  = read(lowTarget),
-					   high = read(highTarget);
-			targetAddress = (high << 8U) + low;
-			break;
+			return {self, toU16((read(highTarget) << 8U) + read(lowTarget))};
 		}
 
 		// Like Zeropage, but the X index to the indirect address
 		// e.g. LDA ($12,X)
 		case Mode::IndirectX: {
 			const auto indirectAddr = getTarget(Mode::Zeropage).value + indexX;
-			targetAddress = read2(indirectAddr, true);
-			break;
+			return {self, read2(indirectAddr, true)};
 		}
 
 		// Like Indirect, but the Y index to the final address
 		// e.g. LDA ($12),Y
 		case Mode::IndirectY: {
 			const auto indirectAddr = getTarget(Mode::Zeropage).value;
-			targetAddress = read2(indirectAddr, true) + indexY;
-			break;
+			return {self, toU16(read2(indirectAddr, true) + indexY)};
 		}
 
 		// Use the value embedded in the instruction as a signed offset
@@ -187,36 +177,31 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 			// negative, in which case flip the lower bits and add one.
 			// If positive the original value is correct
 			if (isNegative(value))
-				targetAddress = pc - (~lowerBits + 1);
-			else
-				targetAddress = pc + value;
+				return {self, toU16(pc - (~lowerBits + 1))};
 
-			break;
+			return {self, toU16(pc + value)};
 		}
 
 		// Use the 4-bit value embedded in the instruction as an offset from the
 		// beginning of memory
 		case Mode::Zeropage: {
-			targetAddress = read(pc++);
-			break;
+			return {self, read(pc++)};
 		}
 
 		// Like Zeropage, but add value of register X and wrap within the page
 		case Mode::ZeropageX: {
-			targetAddress = wrapToByte(
-				getTarget(Mode::Immediate).value + indexX);
-			break;
+			return {self,
+				wrapToByte(getTarget(Mode::Immediate).value + indexX)};
 		}
 
 		// Like Zeropage, but add value of register Y and wrap within the page
 		case Mode::ZeropageY: {
-			targetAddress = wrapToByte(
-				getTarget(Mode::Immediate).value + indexY);
-			break;
+			return {self,
+				wrapToByte(getTarget(Mode::Immediate).value + indexY)};
 		}
 	}
 
-	return {self, targetAddress};
+	throw std::logic_error{"Invalid address mode specified"};
 }
 
 constexpr void CPU::branch(uint16_t address) {
