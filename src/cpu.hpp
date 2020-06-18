@@ -39,6 +39,7 @@ enum class AddressMode {
 class ValueStore {
 public:
 	enum class Type {
+		Implicit,
 		Accumulator,
 		Memory,
 		Value,

@@ -45,16 +45,18 @@ constexpr void ValueStore::write(uint8_t newValue) {
 	switch(type) {
 		case Type::Accumulator: {
 			cpu.accumulator = newValue;
-			break;
+			return;
 		}
 		case Type::Memory: {
 			cpu.write(value, newValue);
+			return;
+		}
+		case Type::Implicit:
+		case Type::Value:
 			break;
-		}
-		case Type::Value: {
-			throw std::logic_error{"Attempt to write to a raw value"};
-		}
 	}
+
+	throw std::logic_error{"Attempt to write to a raw value"};
 }
 
 constexpr auto ValueStore::read() const -> uint16_t {
@@ -65,6 +67,8 @@ constexpr auto ValueStore::read() const -> uint16_t {
 			return cpu.read(value);
 		case Type::Value:
 			return value;
+		case Type::Implicit:
+			break;
 	}
 
 	throw std::logic_error{"Unhandled ValueStore::read()"};
