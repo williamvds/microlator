@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <stdexcept>
 
@@ -41,7 +42,10 @@ constexpr auto wrapToByte(size_t value) -> uint8_t {
 	return toU8(value % u8Modulo);
 }
 
-constexpr void ValueStore::write(uint8_t newValue) {
+constexpr void ValueStore::write(uint8_t newValue) noexcept {
+	assert(type != Type::Implicit
+		&& type != Type::Value);
+
 	switch(type) {
 		case Type::Accumulator: {
 			cpu.accumulator = newValue;
@@ -55,11 +59,11 @@ constexpr void ValueStore::write(uint8_t newValue) {
 		case Type::Value:
 			break;
 	}
-
-	throw std::logic_error{"Attempt to write to a raw value"};
 }
 
-constexpr auto ValueStore::read() const -> uint16_t {
+constexpr auto ValueStore::read() const noexcept -> uint16_t {
+	assert(type != Type::Implicit);
+
 	switch(type) {
 		case Type::Accumulator:
 			return cpu.accumulator;
@@ -71,7 +75,7 @@ constexpr auto ValueStore::read() const -> uint16_t {
 			break;
 	}
 
-	throw std::logic_error{"Unhandled ValueStore::read()"};
+	return {};
 }
 
 constexpr void CPU::reset() {
@@ -93,7 +97,7 @@ void CPU::loadProgram(const std::span<const uint8_t> program) {
 	loadProgram(program, initialProgramCounter);
 }
 
-auto CPU::step() -> bool {
+auto CPU::step() noexcept -> bool {
 	const auto opcode = read(pc++);
 
 	static auto instructions = CPU::getInstructions();
@@ -108,10 +112,13 @@ auto CPU::step() -> bool {
 }
 
 // Get the target address depending on the addressing mode
-constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
+constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 	using Mode = AddressMode;
-	CPU& self = *this;
 
+	assert(mode >= Mode::Implicit
+		&& mode <= Mode::ZeropageY);
+
+	CPU& self = *this;
 	switch (mode) {
 		// Instruction makes target implicit, e.g. CLC
 		case Mode::Implicit: {
@@ -205,18 +212,19 @@ constexpr auto CPU::getTarget(AddressMode mode) -> ValueStore {
 		}
 	}
 
-	throw std::logic_error{"Invalid address mode specified"};
+	return ValueStore(self);
 }
 
-constexpr void CPU::branch(uint16_t address) {
+constexpr void CPU::branch(uint16_t address) noexcept {
 	pc = address;
 }
 
-constexpr auto CPU::read(size_t address) const -> uint8_t {
+constexpr auto CPU::read(size_t address) const noexcept -> uint8_t {
 	return memory[address];
 }
 
-constexpr auto CPU::read2(size_t address, bool wrapToPage) const -> uint16_t {
+constexpr auto CPU::read2(size_t address, bool wrapToPage) const noexcept
+	-> uint16_t {
 	if (wrapToPage)
 		address = wrapToByte(address);
 
@@ -225,36 +233,39 @@ constexpr auto CPU::read2(size_t address, bool wrapToPage) const -> uint16_t {
 		+ (memory[wrapToPage ? wrapToByte(highAddress) : highAddress] << 8U);
 }
 
-constexpr void CPU::write(size_t address, uint8_t value) {
+constexpr void CPU::write(size_t address, uint8_t value) noexcept {
 	memory[address] = value;
 }
 
-constexpr void CPU::push(uint8_t value) {
+constexpr void CPU::push(uint8_t value) noexcept {
 	memory[stackTop + stack--] = value;
 }
 
-constexpr void CPU::push2(uint16_t value) {
+constexpr void CPU::push2(uint16_t value) noexcept {
 	push(toU8(value >> 8U));
 	push(toU8(value & u8Max));
 }
 
-constexpr auto CPU::pop() -> uint8_t {
+constexpr auto CPU::pop() noexcept -> uint8_t {
 	return memory[stackTop + ++stack];
 }
 
-constexpr auto CPU::pop2() -> uint16_t {
+constexpr auto CPU::pop2() noexcept -> uint16_t {
 	return pop() + (pop() << 8U);
 }
 
-constexpr void CPU::popFlags() {
+constexpr void CPU::popFlags() noexcept {
 	auto value = pop();
 	value |=  (1U << Unused);
 	value &= ~(1U << Break);
 	flags = value;
 }
 
-void CPU::calculateFlag(uint8_t value, FlagIndex flag) {
+void CPU::calculateFlag(uint8_t value, FlagIndex flag) noexcept {
 	bool result = false;
+	assert(flag == Carry
+		|| flag == Zero
+		|| flag == Negative);
 
 	switch(flag) {
 		case Carry:
@@ -264,7 +275,7 @@ void CPU::calculateFlag(uint8_t value, FlagIndex flag) {
 		case Negative:
 			result = isNegative(value); break;
 		default:
-			throw std::logic_error{"Can't calculate this flag from a value"};
+			return;
 	}
 
 	flags.set(flag, result);
@@ -276,13 +287,13 @@ void CPU::calculateFlag(uint8_t value, T flag, Args... flags) {
 	calculateFlag(value, flags...);
 }
 
-void CPU::compare(size_t a, size_t b) {
+void CPU::compare(size_t a, size_t b) noexcept {
 	flags.set(Zero,     a == b);
 	flags.set(Carry,    a >= b);
 	flags.set(Negative, isNegative(a - b));
 }
 
-void CPU::addWithCarry(uint8_t input) {
+void CPU::addWithCarry(uint8_t input) noexcept {
 	// TODO: implement decimal mode
 	const uint8_t result = accumulator + input + (flags.test(Carry) ? 1 : 0);
 	calculateFlag(result, Zero, Negative);
@@ -296,17 +307,17 @@ void CPU::addWithCarry(uint8_t input) {
 	accumulator = result;
 }
 
-void CPU::oADC(ValueStore address) {
+void CPU::oADC(ValueStore address) noexcept {
 	addWithCarry(address.read());
 }
 
-void CPU::oAND(ValueStore address) {
+void CPU::oAND(ValueStore address) noexcept {
 	const auto input = address.read();
 	accumulator &= input;
 	calculateFlag(accumulator, Zero, Negative);
 }
 
-void CPU::oASL(ValueStore address) {
+void CPU::oASL(ValueStore address) noexcept {
 	const auto input = address.read();
 	flags.set(Carry, getBit(7, input));
 
@@ -315,163 +326,163 @@ void CPU::oASL(ValueStore address) {
 	address.write(result);
 }
 
-void CPU::oBCC(ValueStore target) {
+void CPU::oBCC(ValueStore target) noexcept {
 	if (!flags.test(Carry))
 		branch(target.value);
 }
 
-void CPU::oBCS(ValueStore target) {
+void CPU::oBCS(ValueStore target) noexcept {
 	if (flags.test(Carry))
 		branch(target.value);
 }
 
-void CPU::oBEQ(ValueStore target) {
+void CPU::oBEQ(ValueStore target) noexcept {
 	if (flags.test(Zero))
 		branch(target.value);
 }
 
-void CPU::oBIT(ValueStore address) {
+void CPU::oBIT(ValueStore address) noexcept {
 	const auto input = address.read();
 	flags.set(Zero, !toBool(input & accumulator));
 	flags.set(Overflow, getBit(6, input));
 	flags.set(Negative, isNegative(input));
 }
 
-void CPU::oBMI(ValueStore target) {
+void CPU::oBMI(ValueStore target) noexcept {
 	if (flags.test(Negative))
 		branch(target.value);
 }
 
-void CPU::oBNE(ValueStore target) {
+void CPU::oBNE(ValueStore target) noexcept {
 	if (!flags.test(Zero))
 		branch(target.value);
 }
 
-void CPU::oBPL(ValueStore target) {
+void CPU::oBPL(ValueStore target) noexcept {
 	if (!flags.test(Negative))
 		branch(target.value);
 }
 
-void CPU::oBRK(ValueStore) {
+void CPU::oBRK(ValueStore) noexcept {
 	flags.set(InterruptOff, true);
 	
 	push2(pc);
 	push(toU8(flags.to_ulong()));
 }
 
-void CPU::oBVC(ValueStore target) {
+void CPU::oBVC(ValueStore target) noexcept {
 	if (!flags.test(Overflow))
 		branch(target.value);
 }
 
-void CPU::oBVS(ValueStore target) {
+void CPU::oBVS(ValueStore target) noexcept {
 	if (flags.test(Overflow))
 		branch(target.value);
 }
 
-void CPU::oCLC(ValueStore) {
+void CPU::oCLC(ValueStore) noexcept {
 	flags.set(Carry, false);
 }
 
-void CPU::oCLD(ValueStore) {
+void CPU::oCLD(ValueStore) noexcept {
 	flags.set(Decimal, false);
 }
 
-void CPU::oCLI(ValueStore) {
+void CPU::oCLI(ValueStore) noexcept {
 	flags.set(InterruptOff, false);
 }
 
-void CPU::oCLV(ValueStore) {
+void CPU::oCLV(ValueStore) noexcept {
 	flags.set(Overflow, false);
 }
 
-void CPU::oCMP(ValueStore address) {
+void CPU::oCMP(ValueStore address) noexcept {
 	const auto input = address.read();
 	compare(accumulator, input);
 }
 
-void CPU::oCPX(ValueStore address) {
+void CPU::oCPX(ValueStore address) noexcept {
 	const auto input = address.read();
 	compare(indexX, input);
 }
 
-void CPU::oCPY(ValueStore address) {
+void CPU::oCPY(ValueStore address) noexcept {
 	const auto input = address.read();
 	compare(indexY, input);
 }
 
-void CPU::oDEC(ValueStore address) {
+void CPU::oDEC(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = input - 1;
 	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
-void CPU::oDEX(ValueStore) {
+void CPU::oDEX(ValueStore) noexcept {
 	const auto result = indexX - 1;
 	calculateFlag(result, Zero, Negative);
 	indexX = result;
 }
 
-void CPU::oDEY(ValueStore) {
+void CPU::oDEY(ValueStore) noexcept {
 	const auto result = indexY - 1;
 	calculateFlag(result, Zero, Negative);
 	indexY = result;
 }
 
-void CPU::oEOR(ValueStore address) {
+void CPU::oEOR(ValueStore address) noexcept {
 	const auto input = address.read();
 	accumulator = accumulator ^ input;
 	calculateFlag(accumulator, Zero, Negative);
 }
 
-void CPU::oINC(ValueStore address) {
+void CPU::oINC(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = input + 1;
 	calculateFlag(result, Zero, Negative);
 	address.write(result);
 }
 
-void CPU::oINX(ValueStore) {
+void CPU::oINX(ValueStore) noexcept {
 	const auto result = indexX + 1;
 	calculateFlag(result, Zero, Negative);
 	indexX = result;
 }
 
-void CPU::oINY(ValueStore) {
+void CPU::oINY(ValueStore) noexcept {
 	const auto result = indexY + 1;
 	calculateFlag(result, Zero, Negative);
 	indexY = result;
 }
 
-void CPU::oJMP(ValueStore target) {
+void CPU::oJMP(ValueStore target) noexcept {
 	pc = target.value;
 }
 
-void CPU::oJSR(ValueStore target) {
+void CPU::oJSR(ValueStore target) noexcept {
 	push2(toU16(pc - 1));
 	pc = target.value;
 }
 
-void CPU::oLDA(ValueStore address) {
+void CPU::oLDA(ValueStore address) noexcept {
 	const auto input = address.read();
 	accumulator = input;
 	calculateFlag(input, Zero, Negative);
 }
 
-void CPU::oLDX(ValueStore address) {
+void CPU::oLDX(ValueStore address) noexcept {
 	const auto input = address.read();
 	indexX = input;
 	calculateFlag(input, Zero, Negative);
 }
 
-void CPU::oLDY(ValueStore address) {
+void CPU::oLDY(ValueStore address) noexcept {
 	const auto input = address.read();
 	indexY = input;
 	calculateFlag(input, Zero, Negative);
 }
 
-void CPU::oLSR(ValueStore address) {
+void CPU::oLSR(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = input >> 1U;
 	calculateFlag(result, Zero, Negative);
@@ -479,34 +490,34 @@ void CPU::oLSR(ValueStore address) {
 	address.write(result);
 }
 
-void CPU::oNOP(ValueStore) {
+void CPU::oNOP(ValueStore) noexcept {
 }
 
-void CPU::oORA(ValueStore address) {
+void CPU::oORA(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = accumulator | input;
 	calculateFlag(result, Zero, Negative);
 	accumulator = result;
 }
 
-void CPU::oPHA(ValueStore) {
+void CPU::oPHA(ValueStore) noexcept {
 	push(accumulator);
 }
 
-void CPU::oPHP(ValueStore) {
+void CPU::oPHP(ValueStore) noexcept {
 	push(toU8(flags.to_ulong() | (1U << Break)));
 }
 
-void CPU::oPLA(ValueStore) {
+void CPU::oPLA(ValueStore) noexcept {
 	accumulator = pop();
 	calculateFlag(accumulator, Zero, Negative);
 }
 
-void CPU::oPLP(ValueStore) {
+void CPU::oPLP(ValueStore) noexcept {
 	popFlags();
 }
 
-void CPU::oROL(ValueStore address) {
+void CPU::oROL(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = setBit(0, input << 1U, flags.test(Carry));
 
@@ -515,7 +526,7 @@ void CPU::oROL(ValueStore address) {
 	address.write(result);
 }
 
-void CPU::oROR(ValueStore address) {
+void CPU::oROR(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = setBit(7, input >> 1U, flags.test(Carry));
 
@@ -524,68 +535,68 @@ void CPU::oROR(ValueStore address) {
 	address.write(result);
 }
 
-void CPU::oRTI(ValueStore) {
+void CPU::oRTI(ValueStore) noexcept {
 	popFlags();
 	pc    = pop2();
 }
 
-void CPU::oRTS(ValueStore) {
+void CPU::oRTS(ValueStore) noexcept {
 	pc = pop2() + 1;
 }
 
-void CPU::oSBC(ValueStore address) {
+void CPU::oSBC(ValueStore address) noexcept {
 	addWithCarry(~address.read());
 }
 
-void CPU::oSEC(ValueStore) {
+void CPU::oSEC(ValueStore) noexcept {
 	flags.set(Carry, true);
 }
 
-void CPU::oSED(ValueStore) {
+void CPU::oSED(ValueStore) noexcept {
 	flags.set(Decimal, true);
 }
 
-void CPU::oSEI(ValueStore) {
+void CPU::oSEI(ValueStore) noexcept {
 	flags.set(InterruptOff, true);
 }
 
-void CPU::oSTA(ValueStore address) {
+void CPU::oSTA(ValueStore address) noexcept {
 	address.write(accumulator);
 }
 
-void CPU::oSTX(ValueStore address) {
+void CPU::oSTX(ValueStore address) noexcept {
 	address.write(indexX);
 }
 
-void CPU::oSTY(ValueStore address) {
+void CPU::oSTY(ValueStore address) noexcept {
 	address.write(indexY);
 }
 
-void CPU::oTAX(ValueStore) {
+void CPU::oTAX(ValueStore) noexcept {
 	indexX = accumulator;
 	calculateFlag(indexX, Zero, Negative);
 }
 
-void CPU::oTAY(ValueStore) {
+void CPU::oTAY(ValueStore) noexcept {
 	indexY = accumulator;
 	calculateFlag(indexY, Zero, Negative);
 }
 
-void CPU::oTSX(ValueStore) {
+void CPU::oTSX(ValueStore) noexcept {
 	indexX = stack;
 	calculateFlag(indexX, Zero, Negative);
 }
 
-void CPU::oTXA(ValueStore) {
+void CPU::oTXA(ValueStore) noexcept {
 	accumulator = indexX;
 	calculateFlag(accumulator, Zero, Negative);
 }
 
-void CPU::oTXS(ValueStore) {
+void CPU::oTXS(ValueStore) noexcept {
 	stack = indexX;
 }
 
-void CPU::oTYA(ValueStore) {
+void CPU::oTYA(ValueStore) noexcept {
 	accumulator = indexY;
 	calculateFlag(accumulator, Zero, Negative);
 }

@@ -60,8 +60,8 @@ public:
 	};
 
 	[[nodiscard]]
-	constexpr auto read() const -> uint16_t;
-	constexpr void write(uint8_t);
+	constexpr auto read() const noexcept -> uint16_t;
+	constexpr void write(uint8_t) noexcept;
 
 	const uint16_t value;
 
@@ -83,7 +83,7 @@ public:
 	// [...] used but never defined" if it is declared constexpr
 	void loadProgram(std::span<const uint8_t> program, uint16_t offset);
 	void loadProgram(std::span<const uint8_t> program);
-	auto step() -> bool;
+	auto step() noexcept -> bool;
 
 	// Registers
 	uint8_t  accumulator{0};
@@ -115,83 +115,83 @@ private:
 	constexpr static auto getInstructions() -> Instructions;
 
 	// Instruction helpers
-	constexpr auto getTarget(AddressMode mode) -> ValueStore;
+	constexpr auto getTarget(AddressMode mode) noexcept -> ValueStore;
 	[[nodiscard]]
-	constexpr auto read(size_t address) const -> uint8_t;
+	constexpr auto read(size_t address) const noexcept -> uint8_t;
 	[[nodiscard]]
 	constexpr auto read2(size_t address, bool wrapToPage = false) const
-		-> uint16_t;
-	constexpr void write(size_t address, uint8_t value);
-	constexpr void push(uint8_t);
-	constexpr void push2(uint16_t);
-	constexpr auto pop() -> uint8_t;
-	constexpr auto pop2() -> uint16_t;
-	constexpr void popFlags();
-	constexpr void branch(uint16_t);
+		noexcept -> uint16_t;
+	constexpr void write(size_t address, uint8_t value) noexcept;
+	constexpr void push(uint8_t) noexcept;
+	constexpr void push2(uint16_t) noexcept;
+	constexpr auto pop() noexcept -> uint8_t;
+	constexpr auto pop2() noexcept -> uint16_t;
+	constexpr void popFlags() noexcept;
+	constexpr void branch(uint16_t) noexcept;
 
 	template<class T, class... Args>
 	void calculateFlag(uint8_t value, T flag, Args... flags);
-	void calculateFlag(uint8_t value, FlagIndex flag);
-	void compare(size_t a, size_t b);
-	void addWithCarry(uint8_t value);
+	void calculateFlag(uint8_t value, FlagIndex flag) noexcept;
+	void compare(size_t a, size_t b) noexcept;
+	void addWithCarry(uint8_t value) noexcept;
 
 	// Instructions
-	void oADC(ValueStore);
-	void oAND(ValueStore);
-	void oASL(ValueStore);
-	void oBCC(ValueStore);
-	void oBCS(ValueStore);
-	void oBEQ(ValueStore);
-	void oBIT(ValueStore);
-	void oBMI(ValueStore);
-	void oBNE(ValueStore);
-	void oBPL(ValueStore);
-	void oBRK(ValueStore);
-	void oBVC(ValueStore);
-	void oBVS(ValueStore);
-	void oCLC(ValueStore);
-	void oCLD(ValueStore);
-	void oCLI(ValueStore);
-	void oCLV(ValueStore);
-	void oCMP(ValueStore);
-	void oCPX(ValueStore);
-	void oCPY(ValueStore);
-	void oDEC(ValueStore);
-	void oDEX(ValueStore);
-	void oDEY(ValueStore);
-	void oEOR(ValueStore);
-	void oINC(ValueStore);
-	void oINX(ValueStore);
-	void oINY(ValueStore);
-	void oJMP(ValueStore);
-	void oJSR(ValueStore);
-	void oLDA(ValueStore);
-	void oLDX(ValueStore);
-	void oLDY(ValueStore);
-	void oLSR(ValueStore);
-	void oNOP(ValueStore);
-	void oORA(ValueStore);
-	void oPHA(ValueStore);
-	void oPHP(ValueStore);
-	void oPLA(ValueStore);
-	void oPLP(ValueStore);
-	void oROL(ValueStore);
-	void oROR(ValueStore);
-	void oRTI(ValueStore);
-	void oRTS(ValueStore);
-	void oSBC(ValueStore);
-	void oSEC(ValueStore);
-	void oSED(ValueStore);
-	void oSEI(ValueStore);
-	void oSTA(ValueStore);
-	void oSTX(ValueStore);
-	void oSTY(ValueStore);
-	void oTAX(ValueStore);
-	void oTAY(ValueStore);
-	void oTSX(ValueStore);
-	void oTXA(ValueStore);
-	void oTXS(ValueStore);
-	void oTYA(ValueStore);
+	void oADC(ValueStore) noexcept;
+	void oAND(ValueStore) noexcept;
+	void oASL(ValueStore) noexcept;
+	void oBCC(ValueStore) noexcept;
+	void oBCS(ValueStore) noexcept;
+	void oBEQ(ValueStore) noexcept;
+	void oBIT(ValueStore) noexcept;
+	void oBMI(ValueStore) noexcept;
+	void oBNE(ValueStore) noexcept;
+	void oBPL(ValueStore) noexcept;
+	void oBRK(ValueStore) noexcept;
+	void oBVC(ValueStore) noexcept;
+	void oBVS(ValueStore) noexcept;
+	void oCLC(ValueStore) noexcept;
+	void oCLD(ValueStore) noexcept;
+	void oCLI(ValueStore) noexcept;
+	void oCLV(ValueStore) noexcept;
+	void oCMP(ValueStore) noexcept;
+	void oCPX(ValueStore) noexcept;
+	void oCPY(ValueStore) noexcept;
+	void oDEC(ValueStore) noexcept;
+	void oDEX(ValueStore) noexcept;
+	void oDEY(ValueStore) noexcept;
+	void oEOR(ValueStore) noexcept;
+	void oINC(ValueStore) noexcept;
+	void oINX(ValueStore) noexcept;
+	void oINY(ValueStore) noexcept;
+	void oJMP(ValueStore) noexcept;
+	void oJSR(ValueStore) noexcept;
+	void oLDA(ValueStore) noexcept;
+	void oLDX(ValueStore) noexcept;
+	void oLDY(ValueStore) noexcept;
+	void oLSR(ValueStore) noexcept;
+	void oNOP(ValueStore) noexcept;
+	void oORA(ValueStore) noexcept;
+	void oPHA(ValueStore) noexcept;
+	void oPHP(ValueStore) noexcept;
+	void oPLA(ValueStore) noexcept;
+	void oPLP(ValueStore) noexcept;
+	void oROL(ValueStore) noexcept;
+	void oROR(ValueStore) noexcept;
+	void oRTI(ValueStore) noexcept;
+	void oRTS(ValueStore) noexcept;
+	void oSBC(ValueStore) noexcept;
+	void oSEC(ValueStore) noexcept;
+	void oSED(ValueStore) noexcept;
+	void oSEI(ValueStore) noexcept;
+	void oSTA(ValueStore) noexcept;
+	void oSTX(ValueStore) noexcept;
+	void oSTY(ValueStore) noexcept;
+	void oTAX(ValueStore) noexcept;
+	void oTAY(ValueStore) noexcept;
+	void oTSX(ValueStore) noexcept;
+	void oTXA(ValueStore) noexcept;
+	void oTXS(ValueStore) noexcept;
+	void oTYA(ValueStore) noexcept;
 
 	friend class ValueStore;
 };
