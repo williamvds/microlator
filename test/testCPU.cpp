@@ -8,8 +8,8 @@
 
 namespace Catch {
 	template<>
-	struct StringMaker<CPU::Flags> {
-		static auto convert(const CPU::Flags& value) -> std::string {
+	struct StringMaker<Flags> {
+		static auto convert(const Flags& value) -> std::string {
 			constexpr auto flags = std::to_array<char>({
 				'C', 'Z', 'I', 'D', 'B', '-', 'V', 'N'
 			});
@@ -18,7 +18,10 @@ namespace Catch {
 			os << '[';
 			for (size_t i = 0; i <= flags.size(); i++) {
 				size_t bit = flags.size() - i;
-				os << (value[bit] ? flags.at(bit) : ' ');
+				os <<
+					(value.test(static_cast<Flags::Index>(bit))
+					? flags.at(bit)
+					: ' ');
 			}
 			os << ']';
 

@@ -9,17 +9,6 @@
 
 class CPU;
 
-enum FlagIndex {
-	Carry,
-	Zero,
-	InterruptOff,
-	Decimal,
-	Break,
-	Unused,
-	Overflow,
-	Negative,
-};
-
 enum class AddressMode {
 	Implicit,
 	Accumulator, A    = Accumulator,
@@ -34,6 +23,63 @@ enum class AddressMode {
 	Zeropage,    Zpg  = Zeropage,
 	ZeropageX,   ZpgX = ZeropageX,
 	ZeropageY,   ZpgY = ZeropageY,
+};
+
+struct Flags {
+	enum class Index : uint8_t {
+		Carry,
+		Zero,
+		InterruptOff,
+		Decimal,
+		Break,
+		Unused,
+		Overflow,
+		Negative,
+	};
+
+	constexpr Flags() = default;
+	constexpr Flags(uint8_t value)
+	: value{value}
+	{
+	};
+
+	constexpr static auto bitmask(Index i) noexcept -> uint8_t {
+		return 1U << static_cast<uint8_t>(i);
+	}
+
+	[[nodiscard]]
+	constexpr auto get() const noexcept -> uint8_t {
+		return value;
+	}
+
+	[[nodiscard]]
+	constexpr auto test(Index i) const noexcept -> bool {
+		return (value & bitmask(i)) != 0;
+	}
+
+	constexpr void set(Index i, bool set) noexcept {
+		const auto mask = bitmask(i);
+		if (set)
+			value |= mask;
+		else
+			value &= static_cast<uint8_t>(~mask);
+	}
+
+	constexpr void reset() noexcept {
+		value = getDefault();
+	}
+
+	constexpr auto operator ==(const Flags& rhs) const noexcept -> bool {
+		return value == rhs.value;
+	}
+
+private:
+	constexpr static auto getDefault() -> uint8_t {
+		return static_cast<uint8_t>(
+		bitmask(Index::Unused) | bitmask(Index::InterruptOff));
+	}
+
+	uint8_t value = getDefault();
 };
 
 class ValueStore {
@@ -92,8 +138,7 @@ public:
 	uint8_t  stack{initialStackPointer};
 	uint16_t pc{initialProgramCounter};
 
-	using Flags = std::bitset<8>;
-	Flags flags{initialFlags};
+	Flags flags;
 
 	constexpr static auto memorySize            = 65536U;
 	using Memory = std::array<uint8_t, memorySize>;
@@ -106,7 +151,6 @@ private:
 	constexpr static auto stackTop              = 0x100;
 	constexpr static auto initialStackPointer   = 0xfd;
 	constexpr static auto initialProgramCounter = 0x600;
-	constexpr static auto initialFlags = (1U << Unused) | (1U << InterruptOff);
 
 	bool indirectJumpBug = true;
 
@@ -131,7 +175,7 @@ private:
 
 	template<class T, class... Args>
 	void calculateFlag(uint8_t value, T flag, Args... flags);
-	void calculateFlag(uint8_t value, FlagIndex flag) noexcept;
+	void calculateFlag(uint8_t value, Flags::Index flag) noexcept;
 	void compare(size_t a, size_t b) noexcept;
 	void addWithCarry(uint8_t value) noexcept;
 

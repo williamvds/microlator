@@ -5,13 +5,15 @@
 #include <bitset>
 #include <cstddef>
 
+#include "cpu.hpp"
+
 struct cpuState {
 	uint16_t pc;
 	const char *dis;
 	uint8_t a;
 	uint8_t x;
 	uint8_t y;
-	std::bitset<8> p;
+	Flags p;
 	uint8_t sp;
 	uint16_t ppuX;
 	uint16_t ppuY;
