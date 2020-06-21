@@ -38,40 +38,16 @@ struct Flags {
 	};
 
 	constexpr Flags() = default;
-	constexpr Flags(uint8_t value)
-	: value{value}
-	{
-	};
+	constexpr Flags(uint8_t value);
 
-	constexpr static auto bitmask(Index i) noexcept -> uint8_t {
-		return 1U << static_cast<uint8_t>(i);
-	}
-
+	constexpr static auto bitmask(Index i) noexcept -> uint8_t;
 	[[nodiscard]]
-	constexpr auto get() const noexcept -> uint8_t {
-		return value;
-	}
-
+	constexpr auto get() const noexcept -> uint8_t;
 	[[nodiscard]]
-	constexpr auto test(Index i) const noexcept -> bool {
-		return (value & bitmask(i)) != 0;
-	}
-
-	constexpr void set(Index i, bool set) noexcept {
-		const auto mask = bitmask(i);
-		if (set)
-			value |= mask;
-		else
-			value &= static_cast<uint8_t>(~mask);
-	}
-
-	constexpr void reset() noexcept {
-		value = getDefault();
-	}
-
-	constexpr auto operator ==(const Flags& rhs) const noexcept -> bool {
-		return value == rhs.value;
-	}
+	constexpr auto test(Index i) const noexcept -> bool;
+	constexpr void set(Index i, bool set) noexcept;
+	constexpr void reset() noexcept;
+	constexpr auto operator ==(const Flags& rhs) const noexcept -> bool;
 
 private:
 	constexpr static auto getDefault() -> uint8_t {
@@ -91,19 +67,8 @@ public:
 		Value,
 	};
 
-	constexpr ValueStore(CPU& cpu, uint16_t value, Type type = Type::Memory)
-	: value{value},
-	  type{type},
-	  cpu{cpu}
-	{
-	};
-
-	constexpr explicit ValueStore(CPU& cpu)
-	: value{0},
-	  type{Type::Accumulator},
-	  cpu{cpu}
-	{
-	};
+	constexpr ValueStore(CPU& cpu, uint16_t value, Type type = Type::Memory);
+	constexpr explicit ValueStore(CPU& cpu);
 
 	[[nodiscard]]
 	constexpr auto read() const noexcept -> uint16_t;
@@ -239,3 +204,55 @@ private:
 
 	friend class ValueStore;
 };
+
+constexpr Flags::Flags(uint8_t value)
+: value{value}
+{
+}
+
+constexpr auto Flags::bitmask(Index i) noexcept -> uint8_t {
+	return 1U << static_cast<uint8_t>(i);
+}
+
+[[nodiscard]]
+constexpr auto Flags::get() const noexcept -> uint8_t {
+	return value;
+}
+
+[[nodiscard]]
+constexpr auto Flags::test(Index i) const noexcept -> bool {
+	return (value & bitmask(i)) != 0;
+}
+
+constexpr void Flags::set(Index i, bool set) noexcept {
+	const auto mask = bitmask(i);
+	if (set)
+		value |= mask;
+	else
+		value &= static_cast<uint8_t>(~mask);
+}
+
+constexpr void Flags::reset() noexcept {
+	value = getDefault();
+}
+
+constexpr auto Flags::operator ==(const Flags& rhs) const noexcept -> bool {
+	return value == rhs.value;
+}
+
+constexpr ValueStore::ValueStore(
+	CPU& cpu,
+	uint16_t value,
+	Type type
+) : value{value},
+    type{type},
+    cpu{cpu}
+{
+}
+
+constexpr ValueStore::ValueStore(CPU& cpu)
+: value{0},
+  type{Type::Accumulator},
+  cpu{cpu}
+{
+}
