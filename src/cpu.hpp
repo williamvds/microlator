@@ -73,10 +73,11 @@ public:
 	[[nodiscard]]
 	constexpr auto read() const noexcept -> uint16_t;
 	constexpr void write(uint8_t) noexcept;
-
-	const uint16_t value;
+	[[nodiscard]]
+	constexpr auto get() const noexcept -> uint16_t;
 
 private:
+	const uint16_t value;
 	const Type type;
 	CPU& cpu;
 };
@@ -255,4 +256,8 @@ constexpr ValueStore::ValueStore(CPU& cpu)
   type{Type::Accumulator},
   cpu{cpu}
 {
+}
+
+constexpr auto ValueStore::get() const noexcept -> uint16_t {
+	return value;
 }

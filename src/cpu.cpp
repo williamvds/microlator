@@ -146,12 +146,12 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 
 		// Like Absolute, but add value of register X, e.g. JMP $1234,X
 		case Mode::AbsoluteX: {
-			return {self, toU16(getTarget(Mode::Absolute).value + indexX)};
+			return {self, toU16(getTarget(Mode::Absolute).get() + indexX)};
 		}
 
 		// Like Absolute, but add value of register Y, e.g. JMP $1234,Y
 		case Mode::AbsoluteY: {
-			return {self, toU16(getTarget(Mode::Absolute).value + indexY)};
+			return {self, toU16(getTarget(Mode::Absolute).get() + indexY)};
 		}
 
 		// Use the value at the address embedded in the instruction
@@ -159,7 +159,7 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 		case Mode::Indirect: {
 			// indirectJumpBug: a hardware bug results in the increment
 			// actually flipping the lower byte from 0xff to 0x00
-			const uint16_t lowTarget  = getTarget(Mode::Absolute).value,
+			const uint16_t lowTarget  = getTarget(Mode::Absolute).get(),
 						   highTarget = indirectJumpBug && (lowTarget & u8Max)
 				? (lowTarget & u16Upper)
 				: lowTarget + 1;
@@ -170,21 +170,21 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 		// Like Zeropage, but the X index to the indirect address
 		// e.g. LDA ($12,X)
 		case Mode::IndirectX: {
-			const auto indirectAddr = getTarget(Mode::Zeropage).value + indexX;
+			const auto indirectAddr = getTarget(Mode::Zeropage).get() + indexX;
 			return {self, read2(indirectAddr, true)};
 		}
 
 		// Like Indirect, but the Y index to the final address
 		// e.g. LDA ($12),Y
 		case Mode::IndirectY: {
-			const auto indirectAddr = getTarget(Mode::Zeropage).value;
+			const auto indirectAddr = getTarget(Mode::Zeropage).get();
 			return {self, toU16(read2(indirectAddr, true) + indexY)};
 		}
 
 		// Use the value embedded in the instruction as a signed offset
 		// from the program counter (after the instruction has been decoded)
 		case Mode::Relative: {
-			const uint8_t value     = getTarget(Mode::Immediate).value,
+			const uint8_t value     = getTarget(Mode::Immediate).get(),
 						  lowerBits = value ^ 0b1000'0000U;
 			// Two's complement: when the high bit is set the number is
 			// negative, in which case flip the lower bits and add one.
@@ -204,13 +204,13 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 		// Like Zeropage, but add value of register X and wrap within the page
 		case Mode::ZeropageX: {
 			return {self,
-				wrapToByte(getTarget(Mode::Immediate).value + indexX)};
+				wrapToByte(getTarget(Mode::Immediate).get() + indexX)};
 		}
 
 		// Like Zeropage, but add value of register Y and wrap within the page
 		case Mode::ZeropageY: {
 			return {self,
-				wrapToByte(getTarget(Mode::Immediate).value + indexY)};
+				wrapToByte(getTarget(Mode::Immediate).get() + indexY)};
 		}
 	}
 
@@ -330,17 +330,17 @@ constexpr void CPU::oASL(ValueStore address) noexcept {
 
 constexpr void CPU::oBCC(ValueStore target) noexcept {
 	if (!flags.test(F::Carry))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBCS(ValueStore target) noexcept {
 	if (flags.test(F::Carry))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBEQ(ValueStore target) noexcept {
 	if (flags.test(F::Zero))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBIT(ValueStore address) noexcept {
@@ -352,17 +352,17 @@ constexpr void CPU::oBIT(ValueStore address) noexcept {
 
 constexpr void CPU::oBMI(ValueStore target) noexcept {
 	if (flags.test(F::Negative))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBNE(ValueStore target) noexcept {
 	if (!flags.test(F::Zero))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBPL(ValueStore target) noexcept {
 	if (!flags.test(F::Negative))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBRK(ValueStore) noexcept {
@@ -374,12 +374,12 @@ constexpr void CPU::oBRK(ValueStore) noexcept {
 
 constexpr void CPU::oBVC(ValueStore target) noexcept {
 	if (!flags.test(F::Overflow))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oBVS(ValueStore target) noexcept {
 	if (flags.test(F::Overflow))
-		branch(target.value);
+		branch(target.get());
 }
 
 constexpr void CPU::oCLC(ValueStore) noexcept {
@@ -458,12 +458,12 @@ constexpr void CPU::oINY(ValueStore) noexcept {
 }
 
 constexpr void CPU::oJMP(ValueStore target) noexcept {
-	pc = target.value;
+	pc = target.get();
 }
 
 constexpr void CPU::oJSR(ValueStore target) noexcept {
 	push2(toU16(pc - 1));
-	pc = target.value;
+	pc = target.get();
 }
 
 constexpr void CPU::oLDA(ValueStore address) noexcept {
