@@ -1,10 +1,8 @@
 #pragma once
 
 #include <array>
-#include <bitset>
 #include <cstddef>
 #include <functional>
-#include <optional>
 #include <span>
 
 class CPU;
