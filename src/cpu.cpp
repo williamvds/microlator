@@ -221,11 +221,11 @@ constexpr void CPU::branch(uint16_t address) noexcept {
 	pc = address;
 }
 
-constexpr auto CPU::read(size_t address) const noexcept -> uint8_t {
+constexpr auto CPU::read(uint16_t address) const noexcept -> uint8_t {
 	return memory[address];
 }
 
-constexpr auto CPU::read2(size_t address, bool wrapToPage) const noexcept
+constexpr auto CPU::read2(uint16_t address, bool wrapToPage) const noexcept
 	-> uint16_t {
 	if (wrapToPage)
 		address = wrapToByte(address);
@@ -235,7 +235,7 @@ constexpr auto CPU::read2(size_t address, bool wrapToPage) const noexcept
 		+ (memory[wrapToPage ? wrapToByte(highAddress) : highAddress] << 8U);
 }
 
-constexpr void CPU::write(size_t address, uint8_t value) noexcept {
+constexpr void CPU::write(uint16_t address, uint8_t value) noexcept {
 	memory[address] = value;
 }
 
@@ -289,7 +289,7 @@ constexpr void CPU::calculateFlag(uint8_t value, T flag, Args... flags) {
 	calculateFlag(value, flags...);
 }
 
-constexpr void CPU::compare(size_t a, size_t b) noexcept {
+constexpr void CPU::compare(uint8_t a, uint8_t b) noexcept {
 	flags.set(F::Zero,     a == b);
 	flags.set(F::Carry,    a >= b);
 	flags.set(F::Negative, isNegative(a - b));

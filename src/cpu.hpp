@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <span>
@@ -126,11 +125,11 @@ private:
 	// Instruction helpers
 	constexpr auto getTarget(AddressMode mode) noexcept -> ValueStore;
 	[[nodiscard]]
-	constexpr auto read(size_t address) const noexcept -> uint8_t;
+	constexpr auto read(uint16_t address) const noexcept -> uint8_t;
 	[[nodiscard]]
-	constexpr auto read2(size_t address, bool wrapToPage = false) const
+	constexpr auto read2(uint16_t address, bool wrapToPage = false) const
 		noexcept -> uint16_t;
-	constexpr void write(size_t address, uint8_t value) noexcept;
+	constexpr void write(uint16_t address, uint8_t value) noexcept;
 	constexpr void push(uint8_t) noexcept;
 	constexpr void push2(uint16_t) noexcept;
 	constexpr auto pop() noexcept -> uint8_t;
@@ -141,7 +140,7 @@ private:
 	template<class T, class... Args>
 	constexpr void calculateFlag(uint8_t value, T flag, Args... flags);
 	constexpr void calculateFlag(uint8_t value, Flags::Index flag) noexcept;
-	constexpr void compare(size_t a, size_t b) noexcept;
+	constexpr void compare(uint8_t a, uint8_t b) noexcept;
 	constexpr void addWithCarry(uint8_t value) noexcept;
 
 	// Instructions
