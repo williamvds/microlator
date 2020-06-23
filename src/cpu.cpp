@@ -345,7 +345,7 @@ constexpr void CPU::oBEQ(ValueStore target) noexcept {
 
 constexpr void CPU::oBIT(ValueStore address) noexcept {
 	const auto input = address.read();
-	flags.set(F::Zero, !toBool(input & accumulator));
+	flags.set(F::Zero, (input & accumulator) == 0U);
 	flags.set(F::Overflow, getBit(6, input));
 	flags.set(F::Negative, isNegative(input));
 }
