@@ -295,15 +295,15 @@ constexpr void CPU::compare(uint8_t a, uint8_t b) noexcept {
 	flags.set(F::Negative, isNegative(a - b));
 }
 
-constexpr void CPU::addWithCarry(uint8_t input) noexcept {
+constexpr void CPU::addWithCarry(uint8_t value) noexcept {
 	// TODO: implement decimal mode
-	const uint8_t result = accumulator + input + (flags.test(F::Carry) ? 1 : 0);
+	const uint8_t result = accumulator + value + (flags.test(F::Carry) ? 1 : 0);
 	calculateFlag(result, F::Zero, F::Negative);
 
 	const auto resultSign = sign(result);
 	flags.set(F::Overflow,
 		(sign(accumulator) != resultSign)
-	 && (sign(input)       != resultSign));
+	 && (sign(value)       != resultSign));
 	flags.set(F::Carry, result < accumulator);
 
 	accumulator = result;
