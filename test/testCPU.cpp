@@ -45,7 +45,7 @@ TEST_CASE("CPU passes nestest", "[cpu]") {
 	cpu.loadProgram(nestestProgram, 0xC000);
 
 	const auto *prev = nestestStates.begin();
-	for (auto it = nestestStates.begin(); it != nestestStates.end(); ++it) {
+	for (const auto *it = nestestStates.begin(); it != nestestStates.end(); ++it) {
 		const auto state = *it;
 
 		INFO("Last instruction: " << prev->dis);
