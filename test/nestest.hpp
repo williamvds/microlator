@@ -7,13 +7,15 @@
 
 #include "cpu.hpp"
 
+namespace emu = microlator;
+
 struct cpuState {
 	uint16_t pc;
 	const char *dis;
 	uint8_t a;
 	uint8_t x;
 	uint8_t y;
-	Flags p;
+	emu::Flags p;
 	uint8_t sp;
 	uint16_t ppuX;
 	uint16_t ppuY;

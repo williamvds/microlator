@@ -5,6 +5,8 @@
 #include <functional>
 #include <span>
 
+namespace microlator {
+
 class CPU;
 
 enum class AddressMode {
@@ -259,3 +261,5 @@ constexpr ValueStore::ValueStore(CPU& cpu)
 constexpr auto ValueStore::get() const noexcept -> uint16_t {
 	return value;
 }
+
+} // namespace microlator

@@ -6,10 +6,12 @@
 #include "cpu.hpp"
 #include "nestest.hpp"
 
+namespace emu = microlator;
+
 namespace Catch {
 	template<>
-	struct StringMaker<Flags> {
-		static auto convert(const Flags& value) -> std::string {
+	struct StringMaker<emu::Flags> {
+		static auto convert(const emu::Flags& value) -> std::string {
 			constexpr auto flags = std::to_array<char>({
 				'C', 'Z', 'I', 'D', 'B', '-', 'V', 'N'
 			});
@@ -19,7 +21,7 @@ namespace Catch {
 			for (size_t i = 0; i <= flags.size(); i++) {
 				size_t bit = flags.size() - i;
 				os <<
-					(value.test(static_cast<Flags::Index>(bit))
+					(value.test(static_cast<emu::Flags::Index>(bit))
 					? flags.at(bit)
 					: ' ');
 			}
@@ -31,14 +33,14 @@ namespace Catch {
 } // namespace Catch
 
 TEST_CASE("CPU can execute", "[cpu]") {
-	auto cpu = CPU();
+	auto cpu = emu::CPU();
 	cpu.step();
 
 	REQUIRE(cpu.pc == 0x601);
 }
 
 TEST_CASE("CPU passes nestest", "[cpu]") {
-	auto cpu = CPU();
+	auto cpu = emu::CPU();
 	cpu.loadProgram(nestestProgram, 0x8000);
 	cpu.loadProgram(nestestProgram, 0xC000);
 

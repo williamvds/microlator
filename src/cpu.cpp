@@ -5,11 +5,11 @@
 
 #include "cpu.hpp"
 
+namespace {
+
 constexpr auto u8Max = 0xffU;
 constexpr auto u8Modulo = 0x100U;
 constexpr auto u16Upper = 0xff00U;
-
-using F = Flags::Index;
 
 constexpr auto toU8(auto value) {
 	return static_cast<uint8_t>(value);
@@ -43,6 +43,12 @@ constexpr auto sign(uint8_t value) -> int8_t {
 constexpr auto wrapToByte(size_t value) -> uint8_t {
 	return toU8(value % u8Modulo);
 }
+
+} // namespace
+
+namespace microlator {
+
+using F = Flags::Index;
 
 constexpr void ValueStore::write(uint8_t newValue) noexcept {
 	assert(type != Type::Implicit
@@ -681,3 +687,5 @@ constexpr auto CPU::getInstructions() -> Instructions {
 		{                 }, {&C::oSBC, M::AbsX}, {&C::oINC, M::AbsX}, {},
 	}};
 }
+
+} // namespace microlator
