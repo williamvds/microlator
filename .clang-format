@@ -1,0 +1,13 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 8
+UseTab: Always
+ColumnLimit: 80
+---
+Language: Cpp
+DerivePointerAlignment: false
+PointerAlignment: Right
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+AccessModifierOffset: -8
+...
