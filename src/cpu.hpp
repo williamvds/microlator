@@ -10,6 +10,7 @@ namespace microlator {
 class CPU;
 
 enum class AddressMode {
+	// clang-format off
 	Implicit,
 	Accumulator, A    = Accumulator,
 	Immediate,   Imm  = Immediate,
@@ -23,6 +24,7 @@ enum class AddressMode {
 	Zeropage,    Zpg  = Zeropage,
 	ZeropageX,   ZpgX = ZeropageX,
 	ZeropageY,   ZpgY = ZeropageY,
+	// clang-format on
 };
 
 struct Flags {
@@ -41,18 +43,16 @@ struct Flags {
 	constexpr Flags(uint8_t value);
 
 	constexpr static auto bitmask(Index i) noexcept -> uint8_t;
-	[[nodiscard]]
-	constexpr auto get() const noexcept -> uint8_t;
-	[[nodiscard]]
-	constexpr auto test(Index i) const noexcept -> bool;
+	[[nodiscard]] constexpr auto get() const noexcept -> uint8_t;
+	[[nodiscard]] constexpr auto test(Index i) const noexcept -> bool;
 	constexpr void set(Index i, bool set) noexcept;
 	constexpr void reset() noexcept;
-	constexpr auto operator ==(const Flags& rhs) const noexcept -> bool;
+	constexpr auto operator==(const Flags &rhs) const noexcept -> bool;
 
 private:
 	constexpr static auto getDefault() -> uint8_t {
-		return static_cast<uint8_t>(
-		bitmask(Index::Unused) | bitmask(Index::InterruptOff));
+		return static_cast<uint8_t>(bitmask(Index::Unused) |
+					    bitmask(Index::InterruptOff));
 	}
 
 	uint8_t value = getDefault();
@@ -67,24 +67,23 @@ public:
 		Value,
 	};
 
-	constexpr ValueStore(CPU& cpu, uint16_t value, Type type = Type::Memory);
-	constexpr explicit ValueStore(CPU& cpu);
+	constexpr ValueStore(CPU &cpu, uint16_t value,
+			     Type type = Type::Memory);
+	constexpr explicit ValueStore(CPU &cpu);
 
-	[[nodiscard]]
-	constexpr auto read() const noexcept -> uint16_t;
+	[[nodiscard]] constexpr auto read() const noexcept -> uint16_t;
 	constexpr void write(uint8_t) noexcept;
-	[[nodiscard]]
-	constexpr auto get() const noexcept -> uint16_t;
+	[[nodiscard]] constexpr auto get() const noexcept -> uint16_t;
 
 private:
 	const uint16_t value;
 	const Type type;
-	CPU& cpu;
+	CPU &cpu;
 };
 
 struct Instruction {
-	using Function = void(CPU::*)(ValueStore);
-	Function    function    = nullptr;
+	using Function = void (CPU::*)(ValueStore);
+	Function function = nullptr;
 	AddressMode addressMode = AddressMode::Implicit;
 };
 
@@ -98,15 +97,15 @@ public:
 	auto step() noexcept -> bool;
 
 	// Registers
-	uint8_t  accumulator{0};
-	uint8_t  indexX{0};
-	uint8_t  indexY{0};
-	uint8_t  stack{initialStackPointer};
+	uint8_t accumulator{0};
+	uint8_t indexX{0};
+	uint8_t indexY{0};
+	uint8_t stack{initialStackPointer};
 	uint16_t pc{initialProgramCounter};
 
 	Flags flags;
 
-	constexpr static auto memorySize            = 65536U;
+	constexpr static auto memorySize = 65536U;
 	using Memory = std::array<uint8_t, memorySize>;
 	Memory memory{};
 
@@ -114,8 +113,8 @@ public:
 	constexpr void push2(uint8_t) = delete;
 
 private:
-	constexpr static auto stackTop              = 0x100;
-	constexpr static auto initialStackPointer   = 0xfd;
+	constexpr static auto stackTop = 0x100;
+	constexpr static auto initialStackPointer = 0xfd;
 	constexpr static auto initialProgramCounter = 0x600;
 
 	bool indirectJumpBug = true;
@@ -126,11 +125,11 @@ private:
 
 	// Instruction helpers
 	constexpr auto getTarget(AddressMode mode) noexcept -> ValueStore;
-	[[nodiscard]]
-	constexpr auto read(uint16_t address) const noexcept -> uint8_t;
-	[[nodiscard]]
-	constexpr auto read2(uint16_t address, bool wrapToPage = false) const
-		noexcept -> uint16_t;
+	[[nodiscard]] constexpr auto read(uint16_t address) const noexcept
+	    -> uint8_t;
+	[[nodiscard]] constexpr auto
+	read2(uint16_t address, bool wrapToPage = false) const noexcept
+	    -> uint16_t;
 	constexpr void write(uint16_t address, uint8_t value) noexcept;
 	constexpr void push(uint8_t) noexcept;
 	constexpr void push2(uint16_t) noexcept;
@@ -139,7 +138,7 @@ private:
 	constexpr void popFlags() noexcept;
 	constexpr void branch(uint16_t) noexcept;
 
-	template<class T, class... Args>
+	template <class T, class... Args>
 	constexpr void calculateFlag(uint8_t value, T flag, Args... flags);
 	constexpr void calculateFlag(uint8_t value, Flags::Index flag) noexcept;
 	constexpr void compare(uint8_t a, uint8_t b) noexcept;
@@ -206,22 +205,17 @@ private:
 	friend class ValueStore;
 };
 
-constexpr Flags::Flags(uint8_t value)
-: value{value}
-{
-}
+constexpr Flags::Flags(uint8_t value) : value{value} {}
 
 constexpr auto Flags::bitmask(Index i) noexcept -> uint8_t {
 	return 1U << static_cast<uint8_t>(i);
 }
 
-[[nodiscard]]
-constexpr auto Flags::get() const noexcept -> uint8_t {
+[[nodiscard]] constexpr auto Flags::get() const noexcept -> uint8_t {
 	return value;
 }
 
-[[nodiscard]]
-constexpr auto Flags::test(Index i) const noexcept -> bool {
+[[nodiscard]] constexpr auto Flags::test(Index i) const noexcept -> bool {
 	return (value & bitmask(i)) != 0;
 }
 
@@ -233,33 +227,18 @@ constexpr void Flags::set(Index i, bool set) noexcept {
 		value &= static_cast<uint8_t>(~mask);
 }
 
-constexpr void Flags::reset() noexcept {
-	value = getDefault();
-}
+constexpr void Flags::reset() noexcept { value = getDefault(); }
 
-constexpr auto Flags::operator ==(const Flags& rhs) const noexcept -> bool {
+constexpr auto Flags::operator==(const Flags &rhs) const noexcept -> bool {
 	return value == rhs.value;
 }
 
-constexpr ValueStore::ValueStore(
-	CPU& cpu,
-	uint16_t value,
-	Type type
-) : value{value},
-    type{type},
-    cpu{cpu}
-{
-}
+constexpr ValueStore::ValueStore(CPU &cpu, uint16_t value, Type type)
+    : value{value}, type{type}, cpu{cpu} {}
 
-constexpr ValueStore::ValueStore(CPU& cpu)
-: value{0},
-  type{Type::Accumulator},
-  cpu{cpu}
-{
-}
+constexpr ValueStore::ValueStore(CPU &cpu)
+    : value{0}, type{Type::Accumulator}, cpu{cpu} {}
 
-constexpr auto ValueStore::get() const noexcept -> uint16_t {
-	return value;
-}
+constexpr auto ValueStore::get() const noexcept -> uint16_t { return value; }
 
 } // namespace microlator
