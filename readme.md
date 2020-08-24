@@ -5,7 +5,7 @@ Emulator for the 6502 microprocessor
 
 - [x] Implementation of all opcodes
 - [x] Passing Nestest (ignoring NES-related features)
-- [ ] Step counting
+- [x] Cycle counting
 - [ ] Decimal mode
 - [ ] Running existing programs, e.g. Atari 2600
 - [ ] [Undocumented instructions](http://nesdev.com/undocumented_opcodes.txt)
