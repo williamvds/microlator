@@ -251,10 +251,9 @@ constexpr auto CPU::read2(uint16_t address, bool wrapToPage) const noexcept
 	if (wrapToPage)
 		address = wrapToByte(address);
 
-	const auto highAddress = address + 1;
-	return memory[address] +
-	       (memory[wrapToPage ? wrapToByte(highAddress) : highAddress]
-		<< 8U);
+	const auto highAddress =
+	    wrapToPage ? wrapToByte(address + 1) : address + 1;
+	return read(address) + (read(highAddress) << 8U);
 }
 
 constexpr auto CPU::relativeAddress(uint16_t address, uint8_t offset,
