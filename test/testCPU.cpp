@@ -33,7 +33,7 @@ TEST_CASE("CPU can execute", "[cpu]") {
 	auto cpu = emu::CPU();
 	cpu.step();
 
-	REQUIRE(cpu.pc == 0x601);
+	REQUIRE(cpu.pc == 0x602);
 }
 
 TEST_CASE("CPU passes nestest", "[cpu]") {

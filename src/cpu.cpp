@@ -367,6 +367,7 @@ constexpr void CPU::oBPL(ValueStore target) noexcept {
 }
 
 constexpr void CPU::oBRK(ValueStore) noexcept {
+	read(pc++); // Read and discard
 	flags.set(F::InterruptOff, true);
 
 	push2(pc);
