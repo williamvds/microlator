@@ -29,4 +29,5 @@ PRIVATE
 )
 
 include(Catch)
-catch_discover_tests(microlator_test)
+catch_discover_tests(microlator_test
+	EXTRA_ARGS --use-colour yes)
