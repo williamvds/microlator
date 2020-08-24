@@ -40,6 +40,7 @@ TEST_CASE("CPU passes nestest", "[cpu]") {
 	auto cpu = emu::CPU();
 	cpu.loadProgram(nestestProgram, 0x8000);
 	cpu.loadProgram(nestestProgram, 0xC000);
+	cpu.cycle = nestestStates[0].cycle;
 
 	const auto *prev = nestestStates.begin();
 	for (const auto *it = nestestStates.begin(); it != nestestStates.end();
@@ -60,6 +61,7 @@ TEST_CASE("CPU passes nestest", "[cpu]") {
 		REQUIRE(cpu.flags == state.p);
 		REQUIRE(static_cast<unsigned>(cpu.stack) ==
 			static_cast<unsigned>(state.sp));
+		REQUIRE(cpu.cycle == state.cycle);
 
 		if (!cpu.step())
 			break;

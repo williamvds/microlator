@@ -84,6 +84,7 @@ constexpr void CPU::reset() {
 	pc = initialProgramCounter;
 	stack = initialStackPointer;
 	flags.reset();
+	cycle = 0;
 }
 
 void CPU::loadProgram(const std::span<const uint8_t> program, uint16_t offset) {
@@ -106,15 +107,18 @@ auto CPU::step() noexcept -> bool {
 	if (!instruction.function)
 		return false;
 
-	const auto target = getTarget(instruction.addressMode);
+	const auto type = getInstructionType(instruction.function);
+	const auto target = getTarget(instruction.addressMode, type);
 	std::invoke(instruction.function, this, target);
 
 	return true;
 }
 
 // Get the target address depending on the addressing mode
-constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
+constexpr auto CPU::getTarget(AddressMode mode, InstructionType type) noexcept
+    -> ValueStore {
 	using Mode = AddressMode;
+	using Type = InstructionType;
 
 	assert(mode >= Mode::Implicit && mode <= Mode::ZeropageY);
 
@@ -144,12 +148,18 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 
 	// Like Absolute, but add value of register X, e.g. JMP $1234,X
 	case Mode::AbsoluteX: {
-		return {self, toU16(getTarget(Mode::Absolute).get() + indexX)};
+		const uint16_t address =
+		    relativeAddress(getTarget(Mode::Absolute).get(), indexX,
+				    type != Type::Read);
+		return {self, address};
 	}
 
 	// Like Absolute, but add value of register Y, e.g. JMP $1234,Y
 	case Mode::AbsoluteY: {
-		return {self, toU16(getTarget(Mode::Absolute).get() + indexY)};
+		const uint16_t address =
+		    relativeAddress(getTarget(Mode::Absolute).get(), indexY,
+				    type != Type::Read);
+		return {self, address};
 	}
 
 	// Use the value at the address embedded in the instruction
@@ -170,16 +180,20 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 	// Like Zeropage, but the X index to the indirect address
 	// e.g. LDA ($12,X)
 	case Mode::IndirectX: {
-		const auto indirectAddr =
-		    getTarget(Mode::Zeropage).get() + indexX;
+		const auto indirectAddr = relativeAddress(
+		    getTarget(Mode::Zeropage).get(), indexX, true);
 		return {self, read2(indirectAddr, true)};
 	}
 
 	// Like Indirect, but the Y index to the final address
 	// e.g. LDA ($12),Y
 	case Mode::IndirectY: {
-		const auto indirectAddr = getTarget(Mode::Zeropage).get();
-		return {self, toU16(read2(indirectAddr, true) + indexY)};
+		const uint16_t indirectAddr = getTarget(Mode::Zeropage).get(),
+			       address =
+				   relativeAddress(read2(indirectAddr, true),
+						   indexY, type != Type::Read);
+
+		return {self, address};
 	}
 
 	// Use the value embedded in the instruction as a signed offset
@@ -205,22 +219,30 @@ constexpr auto CPU::getTarget(AddressMode mode) noexcept -> ValueStore {
 	// Like Zeropage, but add value of register X and wrap within the page
 	case Mode::ZeropageX: {
 		return {self,
-			wrapToByte(getTarget(Mode::Immediate).get() + indexX)};
+			wrapToByte(relativeAddress(
+			    getTarget(Mode::Immediate).get(), indexX, true))};
 	}
 
 	// Like Zeropage, but add value of register Y and wrap within the page
 	case Mode::ZeropageY: {
 		return {self,
-			wrapToByte(getTarget(Mode::Immediate).get() + indexY)};
+			wrapToByte(relativeAddress(
+			    getTarget(Mode::Immediate).get(), indexY, true))};
 	}
 	}
 
 	return ValueStore(self);
 }
 
-constexpr void CPU::branch(uint16_t address) noexcept { pc = address; }
+constexpr void CPU::branch(uint16_t address, bool useCycle) noexcept {
+	pc = address;
+
+	if (useCycle)
+		cycle++;
+}
 
 constexpr auto CPU::read(uint16_t address) const noexcept -> uint8_t {
+	cycle++;
 	return memory[address];
 }
 
@@ -235,12 +257,21 @@ constexpr auto CPU::read2(uint16_t address, bool wrapToPage) const noexcept
 		<< 8U);
 }
 
+constexpr auto CPU::relativeAddress(uint16_t address, uint8_t offset,
+				    bool fixCycle) -> uint16_t {
+	if (fixCycle || toU8(address) + offset > u8Max)
+		cycle++;
+
+	return address + offset;
+}
+
 constexpr void CPU::write(uint16_t address, uint8_t value) noexcept {
+	cycle++;
 	memory[address] = value;
 }
 
 constexpr void CPU::push(uint8_t value) noexcept {
-	memory[stackTop + stack--] = value;
+	write(stackTop + stack--, value);
 }
 
 constexpr void CPU::push2(uint16_t value) noexcept {
@@ -248,16 +279,19 @@ constexpr void CPU::push2(uint16_t value) noexcept {
 	push(toU8(value & u8Max));
 }
 
-constexpr auto CPU::pop() noexcept -> uint8_t {
-	return memory[stackTop + ++stack];
+constexpr auto CPU::pop(bool preIncrement) noexcept -> uint8_t {
+	if (preIncrement)
+		cycle++;
+
+	return read(stackTop + ++stack);
 }
 
-constexpr auto CPU::pop2() noexcept -> uint16_t {
-	return pop() + (pop() << 8U);
+constexpr auto CPU::pop2(bool preIncrement) noexcept -> uint16_t {
+	return pop(preIncrement) + (pop() << 8U);
 }
 
-constexpr void CPU::popFlags() noexcept {
-	auto value = pop();
+constexpr void CPU::popFlags(bool preIncrement) noexcept {
+	auto value = pop(preIncrement);
 	value |= Flags::bitmask(F::Unused);
 	value &= toU8(~Flags::bitmask(F::Break));
 	flags = value;
@@ -323,8 +357,8 @@ constexpr void CPU::oAND(ValueStore address) noexcept {
 constexpr void CPU::oASL(ValueStore address) noexcept {
 	const auto input = address.read();
 	flags.set(F::Carry, getBit(7, input));
-
 	const auto result = input << 1U;
+	cycle++;
 	calculateFlag(result, F::Zero, F::Negative);
 	address.write(result);
 }
@@ -384,15 +418,24 @@ constexpr void CPU::oBVS(ValueStore target) noexcept {
 		branch(target.get());
 }
 
-constexpr void CPU::oCLC(ValueStore) noexcept { flags.set(F::Carry, false); }
+constexpr void CPU::oCLC(ValueStore) noexcept {
+	cycle++;
+	flags.set(F::Carry, false);
+}
 
-constexpr void CPU::oCLD(ValueStore) noexcept { flags.set(F::Decimal, false); }
+constexpr void CPU::oCLD(ValueStore) noexcept {
+	cycle++;
+	flags.set(F::Decimal, false);
+}
 
 constexpr void CPU::oCLI(ValueStore) noexcept {
 	flags.set(F::InterruptOff, false);
 }
 
-constexpr void CPU::oCLV(ValueStore) noexcept { flags.set(F::Overflow, false); }
+constexpr void CPU::oCLV(ValueStore) noexcept {
+	cycle++;
+	flags.set(F::Overflow, false);
+}
 
 constexpr void CPU::oCMP(ValueStore address) noexcept {
 	const auto input = address.read();
@@ -412,17 +455,20 @@ constexpr void CPU::oCPY(ValueStore address) noexcept {
 constexpr void CPU::oDEC(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = input - 1;
+	cycle++;
 	calculateFlag(result, F::Zero, F::Negative);
 	address.write(result);
 }
 
 constexpr void CPU::oDEX(ValueStore) noexcept {
+	cycle++;
 	const auto result = indexX - 1;
 	calculateFlag(result, F::Zero, F::Negative);
 	indexX = result;
 }
 
 constexpr void CPU::oDEY(ValueStore) noexcept {
+	cycle++;
 	const auto result = indexY - 1;
 	calculateFlag(result, F::Zero, F::Negative);
 	indexY = result;
@@ -437,27 +483,33 @@ constexpr void CPU::oEOR(ValueStore address) noexcept {
 constexpr void CPU::oINC(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = input + 1;
+	cycle++;
 	calculateFlag(result, F::Zero, F::Negative);
 	address.write(result);
 }
 
 constexpr void CPU::oINX(ValueStore) noexcept {
+	cycle++;
 	const auto result = indexX + 1;
 	calculateFlag(result, F::Zero, F::Negative);
 	indexX = result;
 }
 
 constexpr void CPU::oINY(ValueStore) noexcept {
+	cycle++;
 	const auto result = indexY + 1;
 	calculateFlag(result, F::Zero, F::Negative);
 	indexY = result;
 }
 
-constexpr void CPU::oJMP(ValueStore target) noexcept { pc = target.get(); }
+constexpr void CPU::oJMP(ValueStore target) noexcept {
+	branch(target.get(), false);
+}
 
 constexpr void CPU::oJSR(ValueStore target) noexcept {
+	cycle++; // Internal operation
 	push2(toU16(pc - 1));
-	pc = target.get();
+	branch(target.get(), false);
 }
 
 constexpr void CPU::oLDA(ValueStore address) noexcept {
@@ -481,12 +533,13 @@ constexpr void CPU::oLDY(ValueStore address) noexcept {
 constexpr void CPU::oLSR(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = input >> 1U;
+	cycle++;
 	calculateFlag(result, F::Zero, F::Negative);
 	flags.set(F::Carry, getBit(0, input));
 	address.write(result);
 }
 
-constexpr void CPU::oNOP(ValueStore) noexcept {}
+constexpr void CPU::oNOP(ValueStore) noexcept { cycle++; }
 
 constexpr void CPU::oORA(ValueStore address) noexcept {
 	const auto input = address.read();
@@ -495,23 +548,31 @@ constexpr void CPU::oORA(ValueStore address) noexcept {
 	accumulator = result;
 }
 
-constexpr void CPU::oPHA(ValueStore) noexcept { push(accumulator); }
+constexpr void CPU::oPHA(ValueStore) noexcept {
+	read(pc); // Read and discard
+	push(accumulator);
+}
 
 constexpr void CPU::oPHP(ValueStore) noexcept {
+	read(pc); // Read and discard
 	push(toU8(flags.get() | Flags::bitmask(F::Break)));
 }
 
 constexpr void CPU::oPLA(ValueStore) noexcept {
-	accumulator = pop();
+	read(pc); // Read and discard
+	accumulator = pop(true);
 	calculateFlag(accumulator, F::Zero, F::Negative);
 }
 
-constexpr void CPU::oPLP(ValueStore) noexcept { popFlags(); }
+constexpr void CPU::oPLP(ValueStore) noexcept {
+	read(pc); // Read and discard
+	popFlags(true);
+}
 
 constexpr void CPU::oROL(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = setBit(0, input << 1U, flags.test(F::Carry));
-
+	cycle++;
 	flags.set(F::Carry, getBit(7, input));
 	calculateFlag(result, F::Zero, F::Negative);
 	address.write(result);
@@ -520,28 +581,38 @@ constexpr void CPU::oROL(ValueStore address) noexcept {
 constexpr void CPU::oROR(ValueStore address) noexcept {
 	const auto input = address.read();
 	const auto result = setBit(7, input >> 1U, flags.test(F::Carry));
-
+	cycle++;
 	flags.set(F::Carry, getBit(0, input));
 	calculateFlag(result, F::Zero, F::Negative);
 	address.write(result);
 }
 
 constexpr void CPU::oRTI(ValueStore) noexcept {
-	popFlags();
-	pc = pop2();
+	popFlags(true);
+	branch(pop2());
 }
 
-constexpr void CPU::oRTS(ValueStore) noexcept { pc = pop2() + 1; }
+constexpr void CPU::oRTS(ValueStore) noexcept {
+	read(pc); // Read and discard
+	branch(pop2(true) + 1);
+}
 
 constexpr void CPU::oSBC(ValueStore address) noexcept {
 	addWithCarry(~address.read());
 }
 
-constexpr void CPU::oSEC(ValueStore) noexcept { flags.set(F::Carry, true); }
+constexpr void CPU::oSEC(ValueStore) noexcept {
+	cycle++;
+	flags.set(F::Carry, true);
+}
 
-constexpr void CPU::oSED(ValueStore) noexcept { flags.set(F::Decimal, true); }
+constexpr void CPU::oSED(ValueStore) noexcept {
+	cycle++;
+	flags.set(F::Decimal, true);
+}
 
 constexpr void CPU::oSEI(ValueStore) noexcept {
+	cycle++;
 	flags.set(F::InterruptOff, true);
 }
 
@@ -554,30 +625,72 @@ constexpr void CPU::oSTX(ValueStore address) noexcept { address.write(indexX); }
 constexpr void CPU::oSTY(ValueStore address) noexcept { address.write(indexY); }
 
 constexpr void CPU::oTAX(ValueStore) noexcept {
+	cycle++;
 	indexX = accumulator;
 	calculateFlag(indexX, F::Zero, F::Negative);
 }
 
 constexpr void CPU::oTAY(ValueStore) noexcept {
+	cycle++;
 	indexY = accumulator;
 	calculateFlag(indexY, F::Zero, F::Negative);
 }
 
 constexpr void CPU::oTSX(ValueStore) noexcept {
+	cycle++;
 	indexX = stack;
 	calculateFlag(indexX, F::Zero, F::Negative);
 }
 
 constexpr void CPU::oTXA(ValueStore) noexcept {
+	cycle++;
 	accumulator = indexX;
 	calculateFlag(accumulator, F::Zero, F::Negative);
 }
 
-constexpr void CPU::oTXS(ValueStore) noexcept { stack = indexX; }
+constexpr void CPU::oTXS(ValueStore) noexcept {
+	cycle++;
+	stack = indexX;
+}
 
 constexpr void CPU::oTYA(ValueStore) noexcept {
+	cycle++;
 	accumulator = indexY;
 	calculateFlag(accumulator, F::Zero, F::Negative);
+}
+
+constexpr auto CPU::getInstructionType(Instruction::Function f)
+    -> InstructionType {
+	using C = CPU;
+	using T = InstructionType;
+	const auto map = std::to_array<std::pair<Instruction::Function, T>>({
+	    {&C::oLDA, T::Read},
+	    {&C::oLDX, T::Read},
+	    {&C::oLDY, T::Read},
+	    {&C::oEOR, T::Read},
+	    {&C::oAND, T::Read},
+	    {&C::oORA, T::Read},
+	    {&C::oADC, T::Read},
+	    {&C::oSBC, T::Read},
+	    {&C::oCMP, T::Read},
+	    {&C::oBIT, T::Read},
+	    {&C::oNOP, T::Read},
+
+	    {&C::oASL, T::ReadModifyWrite},
+	    {&C::oLSR, T::ReadModifyWrite},
+	    {&C::oROL, T::ReadModifyWrite},
+	    {&C::oROR, T::ReadModifyWrite},
+	    {&C::oINC, T::ReadModifyWrite},
+	    {&C::oDEC, T::ReadModifyWrite},
+
+	    {&C::oSTA, T::Write},
+	    {&C::oSTX, T::Write},
+	    {&C::oSTY, T::Write},
+	});
+
+	const auto *res = std::find_if(map.begin(), map.end(),
+				       [&f](auto p) { return p.first == f; });
+	return (res != map.end()) ? res->second : InstructionType::Other;
 }
 
 constexpr auto CPU::getInstructions() -> Instructions {

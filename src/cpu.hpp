@@ -81,6 +81,8 @@ private:
 	CPU &cpu;
 };
 
+enum class InstructionType : uint8_t { Read, ReadModifyWrite, Write, Other };
+
 struct Instruction {
 	using Function = void (CPU::*)(ValueStore);
 	Function function = nullptr;
@@ -109,6 +111,8 @@ public:
 	using Memory = std::array<uint8_t, memorySize>;
 	Memory memory{};
 
+	mutable uint64_t cycle{0};
+
 	constexpr void push(uint16_t) = delete;
 	constexpr void push2(uint8_t) = delete;
 
@@ -123,20 +127,28 @@ private:
 	using Instructions = std::array<Instruction, 256>;
 	constexpr static auto getInstructions() -> Instructions;
 
+	constexpr static auto getInstructionType(Instruction::Function f)
+	    -> InstructionType;
+
 	// Instruction helpers
-	constexpr auto getTarget(AddressMode mode) noexcept -> ValueStore;
-	[[nodiscard]] constexpr auto read(uint16_t address) const noexcept
-	    -> uint8_t;
+	constexpr auto
+	getTarget(AddressMode mode,
+		  InstructionType type = InstructionType::Other) noexcept
+	    -> ValueStore;
+	constexpr auto read(uint16_t address) const noexcept -> uint8_t;
 	[[nodiscard]] constexpr auto
 	read2(uint16_t address, bool wrapToPage = false) const noexcept
+	    -> uint16_t;
+	[[nodiscard]] constexpr auto
+	relativeAddress(uint16_t address, uint8_t offset, bool fixCycle = false)
 	    -> uint16_t;
 	constexpr void write(uint16_t address, uint8_t value) noexcept;
 	constexpr void push(uint8_t) noexcept;
 	constexpr void push2(uint16_t) noexcept;
-	constexpr auto pop() noexcept -> uint8_t;
-	constexpr auto pop2() noexcept -> uint16_t;
-	constexpr void popFlags() noexcept;
-	constexpr void branch(uint16_t) noexcept;
+	constexpr auto pop(bool preIncrement = false) noexcept -> uint8_t;
+	constexpr auto pop2(bool preIncrement = false) noexcept -> uint16_t;
+	constexpr void popFlags(bool preIncrement = false) noexcept;
+	constexpr void branch(uint16_t, bool useCycle = true) noexcept;
 
 	template <class T, class... Args>
 	constexpr void calculateFlag(uint8_t value, T flag, Args... flags);
